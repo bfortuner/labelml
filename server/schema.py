@@ -11,21 +11,65 @@ from graphql import (
 import config as cfg
 import data
 
-
 Image = namedtuple('Image', 'id project src thumbnail thumbnailWidth thumbnailHeight \
                             tags caption modelTags modelProbs')
 Metrics = namedtuple('Metrics', 'accuracy loss counts')
 Counts = namedtuple('Counts', 'trn val tst unlabeled')
 ImageList = namedtuple('ImageList', 'images') 
+BoundingBox = namedtuple('BoundingBox', 'label coords')
+Coords = namedtuple('Coords', 'bl br tl tr')
+ObjDetectImage = namedtuple('ObjDetectImage', 'id project src boundingBoxes') 
 
-## Example
-# src: "https://c2.staticflickr.com/9/8817/28973449265_07e3aa5d2e_b.jpg",
-# thumbnail: "https://c2.staticflickr.com/9/8817/28973449265_07e3aa5d2e_b.jpg",
-# thumbnailWidth: 320,
-# thumbnailHeight: 174,
-# tags: [{value: "Nature", title: "Nature"}, {value: "Flora", title: "Flora"}],
-# caption: "After Rain (Jeshu John - designerspics.com)",
-# isSelected: true
+
+CoordsType = GraphQLObjectType(
+    name='Coords',
+    fields= {
+        'bl': GraphQLField(
+            GraphQLNonNull(GraphQLInt),
+        ),
+        'br': GraphQLField(
+            GraphQLNonNull(GraphQLInt),
+        ),
+        'tl': GraphQLField(
+            GraphQLNonNull(GraphQLInt),
+        ),
+        'tr': GraphQLField(
+            GraphQLNonNull(GraphQLInt),
+        )
+    }
+)
+
+
+BoundingBoxType = GraphQLObjectType(
+    name='BoundingBox',
+    fields= {
+        'label': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'coords': GraphQLField(
+            GraphQLNonNull(CoordsType),
+        ),
+    }
+)
+
+
+ObjDetectImageType = GraphQLObjectType(
+    name='ObjDetectImage',
+    fields= {
+        'id': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'project': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'src': GraphQLField(
+            GraphQLString
+        ),
+        'boundingBoxes': GraphQLField(
+            GraphQLList(BoundingBoxType)
+        )
+    }
+)
 
 
 ImageType = GraphQLObjectType(
@@ -143,6 +187,63 @@ def make_image(id_, fold, dset):
     )
 
 
+
+# const LABELS = [
+#   {value: 'volvo', color: 'red'},
+#   {value: 'saab', color: 'green'},
+#   {value: 'opel', color: 'blue'},
+#   {value: 'audi', color: 'orange'}
+# ]
+
+# const COLORS = {
+#     'volvo':'red',
+#     'saab':'green',
+#     'opel':'blue',
+#     'audi':'orange'
+# }
+
+SHAPE1 = {
+    'coords': {
+        'bl': {'x': 145, 'y': 149},
+        'br': {'x': 269, 'y': 149},
+        'tl': {'x': 145, 'y': 46.99},
+        'tr': {'x': 269, 'y': 46.99}
+    },
+    'id': "s93pmd89nl",
+    'label': "volvo"
+}
+
+SHAPE2 = {
+    'coords': {
+        'bl': {'x': 361, 'y': 353},
+        'br': {'x': 603, 'y': 353},
+        'tl': {'x': 361, 'y': 255},
+        'tr': {'x': 603, 'y': 255}
+    },
+    'id': "asddddsss",
+    'label': "opel"
+}
+
+TEST_IMG = {
+    'id': 'test_id',
+    'project': 'test_project',
+    'src': 'http://www.nature.org/cs/groups/webcontent/@photopublic/documents/media/bluebird-640x400-1.jpg',
+    'boundingBoxes': [
+        SHAPE1, 
+        SHAPE2
+    ]
+}
+
+def make_obj_detect_image(id_, proj_name, bbs):
+    bbs = [] if bbs is None else bbs
+    return ObjDetectImage(
+        id=id_,
+        project=proj_name,
+        src=data.img_url(id_),
+        boundingBoxes=[]
+    )
+
+
 def get_metrics(project_name):
     metrics = data.get_metrics(project_name)
     m = Metrics(
@@ -211,6 +312,17 @@ def save_image_data(fold, id_, tags, dset=None,
 
 
 
+def get_obj_detect_image(project, id_):
+    fold = data.load_fold(project)
+    return make_obj_detect_image(id_, fold, dset)
+
+
+def get_next_obj_detect_image(project):
+    return make_obj_detect_image(project)
+
+
+def update_obj_detect_image(project, id_, img):
+    pass
 
 
 def get_image(project, id_, dset=cfg.UNLABELED):
@@ -228,17 +340,6 @@ def get_image_single(id_, dset=cfg.UNLABELED):
     return make_image(id_, fold, dset)
 
 
-def add_image(src, tags, modelTags, id_=None, dset=None):
-    fold = data.load_fold(cfg.FOLD_FPATH)
-    image_data = get_image_data(
-        fold, dset, shuffle=False, limit=20)
-    image = Image(id=id_, project=fold.name, src=src, 
-                  tags=tags, modelTags=modelTags)
-    image_data[image.id] = image
-    return image
-
-
-#meta = data.load_metadata_df(cfg.METADATA_FPATH)
 def update_tags(id_, project, tags):
     print('updating tags', id_, project, tags)
     if len(tags) > 0:
@@ -250,14 +351,6 @@ def update_tags(id_, project, tags):
 QueryRootType = GraphQLObjectType(
     name='Query',
     fields=lambda: {
-        'test': GraphQLField(
-            GraphQLString,
-            args={
-                'who': GraphQLArgument(GraphQLString)
-            },
-            resolver=lambda root, args, *_:
-                'Hello %s' % (args.get('who') or 'World')
-        ),
         'image': GraphQLField(
             ImageType,
             args={
@@ -265,6 +358,25 @@ QueryRootType = GraphQLObjectType(
             },
             resolver=lambda root, args, *_: get_image_single(
                 args.get('id')
+            ),
+        ),
+        'nextObjDetectImage': GraphQLField(
+            ObjDetectImageType,
+            args={
+                'project': GraphQLArgument(GraphQLString)
+            },
+            resolver=lambda root, args, *_: get_next_obj_detect_image(
+                args.get('project')
+            ),
+        ),
+        'objDetectImage': GraphQLField(
+            ObjDetectImageType,
+            args={
+                'id': GraphQLArgument(GraphQLString),
+                'project': GraphQLArgument(GraphQLString)
+            },
+            resolver=lambda root, args, *_: get_obj_detect_image(
+                args.get('id'), args.get('project')
             ),
         ),
         'imageList': GraphQLField(
@@ -314,6 +426,16 @@ MutationRootType = GraphQLObjectType(
             resolver=lambda root, args, *_: update_tags(
                 args.get('id'), args.get('project'), args.get('tags'))
         ),
+        # 'updateObjDetectLabels': GraphQLField(
+        #     ObjDetectImageType,
+        #     args={
+        #         'id': GraphQLArgument(GraphQLString),
+        #         'project': GraphQLArgument(GraphQLString),
+        #         'boundingBoxes': GraphQLArgument(GraphQLList(BoundingBoxType))
+        #     },
+        #     resolver=lambda root, args, *_: update_obj_detect_image(
+        #         args.get('id'), args.get('project'), args.get('boundingBoxes'))
+        # ),
     }
 )
 
