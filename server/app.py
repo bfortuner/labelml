@@ -22,9 +22,10 @@ def create_app(**kwargs):
 app = create_app(graphiql=True)
 
 
-@app.route('/image/<filename>')
-def image(filename):
-    return send_from_directory(cfg.MEDIA_PATH, filename)
+@app.route('/img/<project>/<filename>')
+def image(project, filename):
+    img_dir = cfg.MEDIA_PATH #os.path.join(cfg.MEDIA_PATH, project)
+    return send_from_directory(img_dir, filename)
 
 
 if __name__ == '__main__':

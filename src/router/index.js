@@ -7,9 +7,10 @@ Vue.use(Router)
 export default new Router({
   routes: [
     {
-      path: '/',
+      path: '/project/:project/:id',
       name: 'Editor',
-      component: Editor
+      component: Editor,
+      props: true
     }
   ]
 })

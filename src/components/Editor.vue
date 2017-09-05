@@ -7,7 +7,7 @@
     <button @click="drawMode()">Draw</button>
     <button @click="selectMode()">Select</button>
     <select id='select-label' v-model="selectedLabel">
-      <option v-for="label in labels" 
+      <option v-for="label in labels"
             v-bind:value="label.value" :key="label.value">
         {{ label.value }}
       </option>
@@ -18,6 +18,9 @@
 
 <script>
 import {fabric} from 'fabric'
+import { OBJ_DETECT_IMG_QUERY } from '../constants/queries'
+import { OBJ_DETECT_LABEL_OPT_QUERY } from '../constants/queries'
+
 
 var LabeledRect = fabric.util.createClass(fabric.Rect, {
     type: 'labeledRect',
@@ -43,92 +46,91 @@ var LabeledRect = fabric.util.createClass(fabric.Rect, {
 });
 
 
-const LABELS = [
-  {value: 'volvo', color: 'red'},
-  {value: 'saab', color: 'green'},
-  {value: 'opel', color: 'blue'},
-  {value: 'audi', color: 'orange'}
-]
-
-const COLORS = {
-    'volvo':'red',
-    'saab':'green',
-    'opel':'blue',
-    'audi':'orange'
-}
-
-var SHAPE1 = {
-    coords: {
-        bl: {x: 145, y: 149},
-        br: {x: 269, y: 149},
-        tl: {x: 145, y: 46.99},
-        tr: {x: 269, y: 46.99}
-    },
-    id: "s93pmd89nl",
-    label: "volvo"
-}
-
-var SHAPE2 = {
-    coords: {
-        bl: {x: 361, y: 353},
-        br: {x: 603, y: 353},
-        tl: {x: 361, y: 255},
-        tr: {x: 603, y: 255}
-    },
-    id: "asddddsss",
-    label: "opel"
-}
-
-const DATA = {
-    imgUrl: "http://www.nature.org/cs/groups/webcontent/@photopublic/documents/media/bluebird-640x400-1.jpg",
-    imgHeight: 400,
-    imgWidth: 640,
-    shapes: [
-        SHAPE1, 
-        SHAPE2
-    ]
-}
-
 var canvas;
 var rect, isDown, origX, origY;
 var isDrawing = true;
 
-
 export default {
   name: 'editor',
   components: { fabric },
-  
+  props: ['id', 'project'],
   data () {
     return {
-      msg: 'Welcome to My7 Vue.js App',
-      imgData: DATA,
-      selectedLabel: LABELS[0].value,
-      labels: LABELS,
-      colors: COLORS
+      objDetectImage: {},
+      objDetectLabelOpts: [],
+      selectedLabel: ''
+    }
+  },
+
+  apollo: {
+    objDetectImage: {
+      query: OBJ_DETECT_IMG_QUERY,
+      variables () {
+        return {
+          id: this.id,
+          project: this.project 
+        }
+      },
+      result({ data, loader, networkStatus }) {
+        this.initializeCanvas();
+      },
+    },
+    objDetectLabelOpts: {
+      query: OBJ_DETECT_LABEL_OPT_QUERY,
+      variables () {
+        return {
+          project: this.project 
+        }
+      },
+      result({ data, loader, networkStatus }) {
+        this.selectedLabel = data.objDetectLabelOpts.labels[0].value;
+        this.loadBBs();
+      },
+    }   
+  },
+
+  computed: {
+    labels: function() {
+      return this.objDetectLabelOpts.labels;
+    },
+    colors: function () {
+      let colorMap = {}
+      for (let opt of this.objDetectLabelOpts.labels) {
+        colorMap[opt.value] = opt.color;
+      }
+      return colorMap;
     }
   },
 
   mounted: function() {
-    console.log(DATA);
-    canvas = new fabric.Canvas('c');
-    this.setupCanvas(canvas);
+    return
   },
 
   created: function () {
-    console.log("VUE created!");
+    return
   },
 
   methods: {
 
-    setupCanvas: function(canvas) {
-      canvas.selection = false;    
+    initializeCanvas: function () {
+      canvas = new fabric.Canvas('c');
+      var img = new Image();
+      var self = this;
+      img.onload = function() {
+        self.configureCanvas(this.width, this.height);
+      }
+      img.src = this.objDetectImage.src;
+    },
+
+    configureCanvas: function(width, height) {
+      canvas.selection = false;
       canvas.setDimensions({
-          height: this.imgData.imgHeight,
-          width: this.imgData.imgWidth
+          height: height,
+          width: width
       });
-      canvas.setBackgroundImage(this.imgData.imgUrl, 
+      canvas.setBackgroundImage(
+        this.objDetectImage.src, 
           canvas.renderAll.bind(canvas));
-      this.loadBBs(canvas, this.imgData.shapes);
 
       let self = this;
       canvas.on('mouse:down', function(o) {
@@ -196,30 +198,26 @@ export default {
       });
     },
 
-    loadBBs: function(canvas, shapes) {
-      let top, left, bottom, right, width, height, bb;
+    loadBBs: function() {
+      let shapes = this.objDetectImage.boundingBoxes;
       let self = this;
       for (let shape of shapes) {
-          top = shape.coords.tl.y;
-          left = shape.coords.tl.x;
-          bottom = shape.coords.br.y;
-          right = shape.coords.br.x;
-          rect = new LabeledRect({
-              left: left,
-              top: top,            
-              originX: 'left',
-              originY: 'top',
-              width: right - left,
-              height: top - bottom,
-              angle: 0,
-              fill: self.colors[shape.label],
-              transparentCorners: false,
-              selectable: false,
-              label: shape.label,
-              id: shape.id,
-              opacity: 0.5
-          });
-          canvas.add(rect);
+        rect = new LabeledRect({
+          left: shape.coords.x,
+          top: shape.coords.y,            
+          originX: 'left',
+          originY: 'top',
+          width: shape.coords.width,
+          height: shape.coords.height,
+          angle: 0,
+          fill: self.colors[shape.label],
+          transparentCorners: false,
+          selectable: false,
+          label: shape.label,
+          id: shape.id,
+          opacity: 0.5
+        });
+        canvas.add(rect);
       }
     },
 
@@ -254,45 +252,51 @@ export default {
         }
         return coords;
     },
+    
+    extractCoords: function (rect) {
+      let coords = rect.get('aCoords');
+      return {
+        'x': coords['tl']['x'],
+        'y': coords['tl']['y'],
+        'width': rect.get('width'),
+        'height': rect.get('height')
+      }
+    },
+
 
     extractBBs: function () {
-      console.log("extracting BBs");
-        let bbs = [];
-        let self = this;
-        let bb;
-        canvas.getObjects().map(function(o) {
-            console.log(o);
-            bb = {}
-            bb.id = o.get('id');
-            bb.label = o.get('label');
-            bb.coords = self.extractCoords(o);
-            let h = o.get('height');
-            let w = o.get('width');
-            if (h !== 0 && w !== 0) {
-                bbs.push(bb);
-            }
-        });
-        return bbs;    
+      let bbs = [];
+      let self = this;
+      let bb;
+      canvas.getObjects().map(function(o) {
+        bb = {}
+        bb.id = o.get('id');
+        bb.label = o.get('label');
+        bb.coords = self.extractCoords(o);
+        if (bb.coords.height !== 0 && bb.coords.width !== 0) {
+            bbs.push(bb);
+        }
+      });
+      return bbs;    
     },
 
     save: function () {
-      console.log("saving!");
-        let bbs = this.extractBBs();
-        console.log(bbs);
+      let bbs = this.extractBBs();
+      console.log(bbs);
     },
 
     drawMode: function () {
-        isDrawing = true;
-        canvas.forEachObject(function(o) {
-            o.selectable = false;
-        }).selection = false;
+      isDrawing = true;
+      canvas.forEachObject(function(o) {
+          o.selectable = false;
+      }).selection = false;
     },
 
     selectMode: function() {
-        isDrawing = false;
-        canvas.forEachObject(function(o) {
-        o.set({selectable: true}).setCoords();
-        }).selection = true;  
+      isDrawing = false;
+      canvas.forEachObject(function(o) {
+      o.set({selectable: true}).setCoords();
+      }).selection = true;  
     }
   }
 

@@ -16,24 +16,26 @@ Image = namedtuple('Image', 'id project src thumbnail thumbnailWidth thumbnailHe
 Metrics = namedtuple('Metrics', 'accuracy loss counts')
 Counts = namedtuple('Counts', 'trn val tst unlabeled')
 ImageList = namedtuple('ImageList', 'images') 
-BoundingBox = namedtuple('BoundingBox', 'label coords')
-Coords = namedtuple('Coords', 'bl br tl tr')
+BoundingBox = namedtuple('BoundingBox', 'id label coords')
+Coords = namedtuple('Coords', 'x y width height')
 ObjDetectImage = namedtuple('ObjDetectImage', 'id project src boundingBoxes') 
+ObjDetectLabelOpts = namedtuple('ObjDetectLabelOpts', 'labels') 
+ColorLabel = namedtuple('ColorLabel', 'value color') 
 
 
 CoordsType = GraphQLObjectType(
     name='Coords',
     fields= {
-        'bl': GraphQLField(
+        'x': GraphQLField(
             GraphQLNonNull(GraphQLInt),
         ),
-        'br': GraphQLField(
+        'y': GraphQLField(
             GraphQLNonNull(GraphQLInt),
         ),
-        'tl': GraphQLField(
+        'width': GraphQLField(
             GraphQLNonNull(GraphQLInt),
         ),
-        'tr': GraphQLField(
+        'height': GraphQLField(
             GraphQLNonNull(GraphQLInt),
         )
     }
@@ -43,6 +45,9 @@ CoordsType = GraphQLObjectType(
 BoundingBoxType = GraphQLObjectType(
     name='BoundingBox',
     fields= {
+        'id': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
         'label': GraphQLField(
             GraphQLNonNull(GraphQLString),
         ),
@@ -151,6 +156,29 @@ ImageListType = GraphQLObjectType(
 )
 
 
+ColorLabelType = GraphQLObjectType(
+    name='ColorLabel',
+    fields= {
+        'value': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'color': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        )
+    }
+)
+
+
+ObjDetectLabelOptsType = GraphQLObjectType(
+    name='ObjDetectLabelOpts',
+    fields= {
+        'labels': GraphQLField(
+            GraphQLList(ColorLabelType)
+        ),
+    }
+)
+
+
 def make_unlabeled_img(project, id_):
     return Image(
         id=id_,
@@ -187,60 +215,67 @@ def make_image(id_, fold, dset):
     )
 
 
+LABELS = [
+    {'value': 'volvo', 'color': 'red'},
+    {'value': 'saab', 'color': 'green'},
+    {'value': 'opel', 'color': 'blue'},
+    {'value': 'audi', 'color': 'orange'}
+]
 
-# const LABELS = [
-#   {value: 'volvo', color: 'red'},
-#   {value: 'saab', color: 'green'},
-#   {value: 'opel', color: 'blue'},
-#   {value: 'audi', color: 'orange'}
-# ]
 
-# const COLORS = {
-#     'volvo':'red',
-#     'saab':'green',
-#     'opel':'blue',
-#     'audi':'orange'
-# }
+def make_obj_detect_label_opt(label):
+    return ColorLabel(
+        value=label['value'],
+        color=label['color']
+    )
 
-SHAPE1 = {
-    'coords': {
-        'bl': {'x': 145, 'y': 149},
-        'br': {'x': 269, 'y': 149},
-        'tl': {'x': 145, 'y': 46.99},
-        'tr': {'x': 269, 'y': 46.99}
-    },
-    'id': "s93pmd89nl",
-    'label': "volvo"
-}
 
-SHAPE2 = {
-    'coords': {
-        'bl': {'x': 361, 'y': 353},
-        'br': {'x': 603, 'y': 353},
-        'tl': {'x': 361, 'y': 255},
-        'tr': {'x': 603, 'y': 255}
-    },
-    'id': "asddddsss",
-    'label': "opel"
-}
+def get_obj_detect_label_opts(project):
+    labels = LABELS #data.get_obj_detect_project_labels(project)
+    options = []
+    for label in labels:
+        options.append(make_obj_detect_label_opt(label))
+    return ObjDetectLabelOpts(
+        labels=options)
 
-TEST_IMG = {
-    'id': 'test_id',
-    'project': 'test_project',
-    'src': 'http://www.nature.org/cs/groups/webcontent/@photopublic/documents/media/bluebird-640x400-1.jpg',
-    'boundingBoxes': [
-        SHAPE1, 
-        SHAPE2
-    ]
-}
 
-def make_obj_detect_image(id_, proj_name, bbs):
-    bbs = [] if bbs is None else bbs
+def get_obj_detect_image(id_, project):
+    image = data.load_obj_detect_img(id_, project)
+    return make_obj_detect_image(image)
+
+
+def make_coords(coords):
+    return Coords(
+        x=coords["x"],
+        y=coords["y"],
+        width=coords["width"],
+        height=coords["height"] 
+    )
+
+
+def make_bounding_boxes(bbList):
+    bbs = []
+    for box in bbList:
+        bbs.append(
+            BoundingBox(
+                id=box["id"],
+                label=box["label"],
+                coords=make_coords(
+                    box["coords"])
+            )
+        )
+    return bbs
+
+
+def make_obj_detect_image(image):
+    src = data.make_url(image['project'], 
+        data.id_to_fname(image['id']))
     return ObjDetectImage(
-        id=id_,
-        project=proj_name,
-        src=data.img_url(id_),
-        boundingBoxes=[]
+        id=image["id"],
+        project=image["project"],
+        src=src,
+        boundingBoxes=make_bounding_boxes(
+            image["boundingBoxes"])
     )
 
 
@@ -312,9 +347,7 @@ def save_image_data(fold, id_, tags, dset=None,
 
 
 
-def get_obj_detect_image(project, id_):
-    fold = data.load_fold(project)
-    return make_obj_detect_image(id_, fold, dset)
+
 
 
 def get_next_obj_detect_image(project):
@@ -377,6 +410,15 @@ QueryRootType = GraphQLObjectType(
             },
             resolver=lambda root, args, *_: get_obj_detect_image(
                 args.get('id'), args.get('project')
+            ),
+        ),
+        'objDetectLabelOpts': GraphQLField(
+            ObjDetectLabelOptsType,
+            args={
+                'project': GraphQLArgument(GraphQLString)
+            },
+            resolver=lambda root, args, *_: get_obj_detect_label_opts(
+                args.get('project')
             ),
         ),
         'imageList': GraphQLField(

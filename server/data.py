@@ -11,6 +11,11 @@ import config as cfg
 DEFAULT_COLS = ['id','labels','model_labels']
 
 
+
+def load_obj_detect_img(id_, project):
+    return IMAGE1
+
+
 def get_fpath(proj_name, fname):
     return os.path.join(cfg.LABEL_PATH, proj_name, fname)
 
@@ -74,6 +79,15 @@ def img_url(fname):
     return cfg.IMG_ENDPOINT + '/{:s}'.format(fname + cfg.IMG_EXT)
 
 
+def id_to_fname(img_id):
+    return img_id + cfg.IMG_EXT
+
+
+def make_url(project, fname):
+    return cfg.IMG_ENDPOINT + '/{:s}/{:s}'.format(
+        project, fname)
+
+
 def get_img_count(fold, dset):
     return len(fold[dset].keys())
 
@@ -130,6 +144,35 @@ def update_counts(project_name):
     metrics["counts"] = counts
     utils.files.save_json(metrics_fpath, metrics)
     return metrics
+
+
+
+BOX1 = {
+    "id": "A",
+    "label": "audi",
+    "coords": {
+        "x": 145,
+        "y": 49,
+        "width": 124,
+        "height": 100 
+    }
+}
+
+TEST_PROJECT = "testProject"
+TEST_IMG = "testId" #Bombay_220"
+IMG_SRC = make_url(TEST_PROJECT, id_to_fname(TEST_IMG))
+
+IMAGE1 = {
+    "id": TEST_IMG,
+    "project": TEST_PROJECT,
+    "src": IMG_SRC, #"http://www.nature.org/cs/groups/webcontent/@photopublic/documents/media/bluebird-640x400-1.jpg",
+    "width": 640,
+    "height": 400,
+    "boundingBoxes": [
+        BOX1
+    ]
+}
+
 
 
 
