@@ -1,6 +1,5 @@
 <template>
   <div class="editor">
-    <button @click="getPrevImg()">Prev</button>
     <button @click="getNextImg()">Next</button>
     <button @click="save()">Save</button>
     <button @click="deleteObject()">Delete</button>
@@ -20,6 +19,9 @@
 import {fabric} from 'fabric'
 import { OBJ_DETECT_IMG_QUERY } from '../constants/graphql'
 import { OBJ_DETECT_LABEL_OPT_QUERY } from '../constants/graphql'
+import { SAVE_OBJ_DETECT_IMAGE } from '../constants/graphql'
+import { NEXT_OBJ_DETECT_IMG_QUERY } from '../constants/graphql'
+
 
 
 var LabeledRect = fabric.util.createClass(fabric.Rect, {
@@ -53,26 +55,40 @@ var isDrawing = true;
 export default {
   name: 'editor',
   components: { fabric },
-  props: ['id', 'project'],
+  props: ['project'],
   data () {
     return {
-      objDetectImage: {},
+      id: '',
+      image: {},
       objDetectLabelOpts: [],
       selectedLabel: ''
     }
   },
 
   apollo: {
-    objDetectImage: {
-      query: OBJ_DETECT_IMG_QUERY,
+    // image: {
+    //   query: OBJ_DETECT_IMG_QUERY,
+    //   variables () {
+    //     return {
+    //       id: this.id,
+    //       project: this.project 
+    //     }
+    //   },
+    //   result({ data, loader, networkStatus }) {
+    //     this.initializeCanvas();
+    //   },
+    // },
+    nextObjDetectImage: {
+      query: NEXT_OBJ_DETECT_IMG_QUERY,
       variables () {
         return {
-          id: this.id,
           project: this.project 
         }
       },
       result({ data, loader, networkStatus }) {
+        this.image = data.nextObjDetectImage;
         this.initializeCanvas();
+        this.loadBBs();
       },
     },
     objDetectLabelOpts: {
@@ -113,13 +129,18 @@ export default {
   methods: {
 
     initializeCanvas: function () {
-      canvas = new fabric.Canvas('c');
+      if (canvas == null) { 
+        canvas = new fabric.Canvas('c');
+      } else {
+        canvas.dispose();
+        canvas = new fabric.Canvas('c');
+      }
       var img = new Image();
       var self = this;
       img.onload = function() {
         self.configureCanvas(this.width, this.height);
       }
-      img.src = this.objDetectImage.src;
+      img.src = this.image.src;
     },
 
     configureCanvas: function(width, height) {
@@ -129,7 +150,7 @@ export default {
           width: width
       });
       canvas.setBackgroundImage(
-        this.objDetectImage.src, 
+        this.image.src, 
           canvas.renderAll.bind(canvas));
 
       let self = this;
@@ -199,7 +220,7 @@ export default {
     },
 
     loadBBs: function() {
-      let shapes = this.objDetectImage.boundingBoxes;
+      let shapes = this.image.boundingBoxes;
       let self = this;
       for (let shape of shapes) {
         rect = new LabeledRect({
@@ -258,8 +279,8 @@ export default {
       return {
         'x': coords['tl']['x'],
         'y': coords['tl']['y'],
-        'width': rect.get('width'),
-        'height': rect.get('height')
+        'width': coords['tr']['x'] - coords['tl']['x'],
+        'height': coords['br']['y'] - coords['tr']['y'],
       }
     },
 
@@ -279,22 +300,36 @@ export default {
       return bbs;    
     },
 
+    getNextImg: function () {
+      this.$apollo.queries.nextObjDetectImage.refetch();
+    },
+
     save: function () {
       let bbs = this.extractBBs();
       console.log(bbs);
+      this.$apollo.mutate({
+        mutation: SAVE_OBJ_DETECT_IMAGE,
+        variables: {
+          id: this.image.id,
+          project: this.project,
+          boundingBoxes: bbs
+        }
+      }).then((data) => {
+        this.$apollo.queries.nextObjDetectImage.refetch();
+      })
     },
 
     drawMode: function () {
       isDrawing = true;
       canvas.forEachObject(function(o) {
-          o.selectable = false;
+        o.selectable = false;
       }).selection = false;
     },
 
     selectMode: function() {
       isDrawing = false;
       canvas.forEachObject(function(o) {
-      o.set({selectable: true}).setCoords();
+        o.set({selectable: true}).setCoords();
       }).selection = true;  
     }
   }

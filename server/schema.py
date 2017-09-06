@@ -5,7 +5,8 @@ import pandas as pd
 from graphql import (
     GraphQLField, GraphQLNonNull, GraphQLArgument,
     GraphQLObjectType, GraphQLList, GraphQLBoolean, GraphQLString,
-    GraphQLSchema, GraphQLInt, GraphQLFloat
+    GraphQLSchema, GraphQLInt, GraphQLFloat, GraphQLInputObjectType,
+    GraphQLInputObjectField
 )
 
 import config as cfg
@@ -41,6 +42,23 @@ CoordsType = GraphQLObjectType(
     }
 )
 
+CoordsInputType = GraphQLInputObjectType(
+    name='CoordsInput',
+    fields= {
+        'x': GraphQLInputObjectField(
+            GraphQLNonNull(GraphQLInt),
+        ),
+        'y': GraphQLInputObjectField(
+            GraphQLNonNull(GraphQLInt),
+        ),
+        'width': GraphQLInputObjectField(
+            GraphQLNonNull(GraphQLInt),
+        ),
+        'height': GraphQLInputObjectField(
+            GraphQLNonNull(GraphQLInt),
+        )
+    }
+)
 
 BoundingBoxType = GraphQLObjectType(
     name='BoundingBox',
@@ -57,6 +75,20 @@ BoundingBoxType = GraphQLObjectType(
     }
 )
 
+BoundingBoxInputType = GraphQLInputObjectType(
+    name='BoundingBoxInput',
+    fields= {
+        'id': GraphQLInputObjectField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'label': GraphQLInputObjectField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'coords': GraphQLInputObjectField(
+            CoordsInputType
+        )
+    }
+)
 
 ObjDetectImageType = GraphQLObjectType(
     name='ObjDetectImage',
@@ -285,11 +317,10 @@ def get_metrics(project_name):
     )
 
 
-def get_next_obj_detect_img(project, dset, shuffle=False):
+def get_next_obj_detect_img(project, currentId=None, dset=cfg.UNLABELED):
     fold = data.load_fold(project)
     ids = list(fold[dset].keys())
-    if shuffle:
-        random.shuffle(ids)
+    random.shuffle(ids)
     img = fold[dset][ids[0]]
     return make_obj_detect_image(ids[0], project, img)
 
@@ -346,8 +377,19 @@ def save_image_data(fold, id_, tags, dset=None,
     data.update_counts(fold["name"])
 
 
-def update_obj_detect_image(img):
-    pass
+def save_obj_detect_image(id_, project, bbs, dset=None):
+    dset = get_random_dset() if dset is None else dset
+    entry = data.make_obj_detect_entry(bbs)
+    fold = data.load_fold(project)
+    if id_ in fold[cfg.UNLABELED]:
+        data.move_unlabeled_to_labeled(fold, dset, id_, entry)
+    else:
+        for dset in [cfg.VAL, cfg.TRAIN]:
+            if id_ in fold[dset]:
+                fold[dset][id_] = entry
+                break
+    data.save_fold(fold)
+    # data.update_counts(fold["name"])
 
 
 def get_image(project, id_, dset=cfg.UNLABELED):
@@ -360,16 +402,13 @@ def get_images(image_list):
 
 
 def get_image_single(id_, dset=cfg.UNLABELED):
-    print('get image single')
     fold = data.load_fold(cfg.FOLD_FPATH)
     return make_image(id_, fold, dset)
 
 
 def update_tags(id_, project, tags):
-    print('updating tags', id_, project, tags)
     if len(tags) > 0:
         fold = data.load_fold(project)
-        print(fold.keys())
         save_image_data(fold, id_, tags)
 
 
@@ -388,10 +427,11 @@ QueryRootType = GraphQLObjectType(
         'nextObjDetectImage': GraphQLField(
             ObjDetectImageType,
             args={
-                'project': GraphQLArgument(GraphQLString)
+                'project': GraphQLArgument(GraphQLString),
+                'currentId': GraphQLArgument(GraphQLString)
             },
-            resolver=lambda root, args, *_: get_next_obj_detect_image(
-                args.get('project')
+            resolver=lambda root, args, *_: get_next_obj_detect_img(
+                args.get('project'), args.get('currentId')
             ),
         ),
         'objDetectImage': GraphQLField(
@@ -438,18 +478,6 @@ QueryRootType = GraphQLObjectType(
 MutationRootType = GraphQLObjectType(
     name='Mutation',
     fields=lambda: {
-        'addImage': GraphQLField(
-            ImageType,
-            args={
-                'project': GraphQLArgument(GraphQLString), 
-                'src': GraphQLArgument(GraphQLString),
-                'userLabels': GraphQLArgument(GraphQLList(GraphQLString)),
-                'modelLabels': GraphQLArgument(GraphQLList(GraphQLString))
-            },
-            resolver=lambda root, args, *_: add_image(
-                args.get('project'), args.get('src'), 
-                args.get('tags'), args.get('modelTags'))
-        ),
         'updateImageTags': GraphQLField(
             ImageType,
             args={
@@ -460,16 +488,16 @@ MutationRootType = GraphQLObjectType(
             resolver=lambda root, args, *_: update_tags(
                 args.get('id'), args.get('project'), args.get('tags'))
         ),
-        # 'updateObjDetectLabels': GraphQLField(
-        #     ObjDetectImageType,
-        #     args={
-        #         'id': GraphQLArgument(GraphQLString),
-        #         'project': GraphQLArgument(GraphQLString),
-        #         'boundingBoxes': GraphQLArgument(GraphQLList(BoundingBoxType))
-        #     },
-        #     resolver=lambda root, args, *_: update_obj_detect_image(
-        #         args.get('id'), args.get('project'), args.get('boundingBoxes'))
-        # ),
+        'saveObjDetectImage': GraphQLField(
+            ObjDetectImageType,
+            args={
+                'id': GraphQLArgument(GraphQLString),
+                'project': GraphQLArgument(GraphQLString),
+                'boundingBoxes': GraphQLArgument(GraphQLList(BoundingBoxInputType))
+            },
+            resolver=lambda root, args, *_: save_obj_detect_image(
+                args.get('id'), args.get('project'), args.get('boundingBoxes'))
+        ),
     }
 )
 

@@ -21,22 +21,6 @@ COLORS = [
 ]
 
 
-def load_obj_detect_img(id_, project, dset=cfg.UNLABELED):
-    fold = load_fold(project)
-    return fold[dset][id_]
-
-
-def get_obj_detect_label_opts(project):
-    fold = load_fold(project)
-    labels = []
-    for i,v in enumerate(fold['label_names']):
-        labels.append({
-            'value': v,
-            'color': COLORS[i]
-        })
-    return labels
-
-
 def get_fpath(proj_name, fname):
     return os.path.join(cfg.LABEL_PATH, proj_name, fname)
 
@@ -76,6 +60,25 @@ def make_entry(labels=None, model_labels=None, model_probs=None):
     }
 
 
+def load_obj_detect_img(id_, project):
+    fold = load_fold(project)
+    for dset in [cfg.VAL, cfg.TRAIN, cfg.UNLABELED]:
+        if id_ in fold[dset]:
+            return fold[dset][id_]
+    return None
+
+
+def get_obj_detect_label_opts(project):
+    fold = load_fold(project)
+    labels = []
+    for i,v in enumerate(fold['label_names']):
+        labels.append({
+            'value': v,
+            'color': COLORS[i]
+        })
+    return labels
+
+
 def make_obj_detect_entry(bbs):
     return {
         'bounding_boxes': bbs,
@@ -83,12 +86,10 @@ def make_obj_detect_entry(bbs):
 
 
 def add_or_update_entry(fold, dset, id_, entry):
-    print("Adding or updating entry")
     fold[dset][id_] = entry
 
 
 def move_unlabeled_to_labeled(fold, dset, id_, entry):
-    print("Moving unlabeled to labeled")
     add_or_update_entry(fold, dset, id_, entry)
     del fold['unlabeled'][id_]
 
