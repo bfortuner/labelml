@@ -215,14 +215,6 @@ def make_image(id_, fold, dset):
     )
 
 
-LABELS = [
-    {'value': 'volvo', 'color': 'red'},
-    {'value': 'saab', 'color': 'green'},
-    {'value': 'opel', 'color': 'blue'},
-    {'value': 'audi', 'color': 'orange'}
-]
-
-
 def make_obj_detect_label_opt(label):
     return ColorLabel(
         value=label['value'],
@@ -231,17 +223,17 @@ def make_obj_detect_label_opt(label):
 
 
 def get_obj_detect_label_opts(project):
-    labels = LABELS #data.get_obj_detect_project_labels(project)
-    options = []
+    labels = data.get_obj_detect_label_opts(project)
+    opts = []
     for label in labels:
-        options.append(make_obj_detect_label_opt(label))
+        opts.append(make_obj_detect_label_opt(label))
     return ObjDetectLabelOpts(
-        labels=options)
+        labels=opts)
 
 
-def get_obj_detect_image(id_, project):
-    image = data.load_obj_detect_img(id_, project)
-    return make_obj_detect_image(image)
+def get_obj_detect_img(id_, project):
+    img = data.load_obj_detect_img(id_, project)
+    return make_obj_detect_image(id_, project, img)
 
 
 def make_coords(coords):
@@ -267,31 +259,39 @@ def make_bounding_boxes(bbList):
     return bbs
 
 
-def make_obj_detect_image(image):
-    src = data.make_url(image['project'], 
-        data.id_to_fname(image['id']))
+def make_obj_detect_image(id_, project, img):
+    src = data.make_url(project, data.id_to_fname(id_))
+    bbs = [] if img is None else img['bounding_boxes']
     return ObjDetectImage(
-        id=image["id"],
-        project=image["project"],
+        id=id_,
+        project=project,
         src=src,
-        boundingBoxes=make_bounding_boxes(
-            image["boundingBoxes"])
+        boundingBoxes=make_bounding_boxes(bbs)
     )
 
 
 def get_metrics(project_name):
     metrics = data.get_metrics(project_name)
-    m = Metrics(
+    return Metrics(
         accuracy=metrics['accuracy'],
         loss=metrics['loss'],
         counts=Counts(
             trn=metrics['counts']['trn'],
             val=metrics['counts']['val'],
-            tst=0 if 'tst' not in metrics['counts'] else metrics['counts']['tst'],
+            tst=(0 if 'tst' not in metrics['counts'] 
+                 else metrics['counts']['tst']),
             unlabeled=metrics['counts']['unlabeled']                                    
         )
     )
-    return m
+
+
+def get_next_obj_detect_img(project, dset, shuffle=False):
+    fold = data.load_fold(project)
+    ids = list(fold[dset].keys())
+    if shuffle:
+        random.shuffle(ids)
+    img = fold[dset][ids[0]]
+    return make_obj_detect_image(ids[0], project, img)
 
 
 def get_random_batch(proj_name, dset, shuffle=False, limit=20):
@@ -346,15 +346,7 @@ def save_image_data(fold, id_, tags, dset=None,
     data.update_counts(fold["name"])
 
 
-
-
-
-
-def get_next_obj_detect_image(project):
-    return make_obj_detect_image(project)
-
-
-def update_obj_detect_image(project, id_, img):
+def update_obj_detect_image(img):
     pass
 
 
@@ -408,7 +400,7 @@ QueryRootType = GraphQLObjectType(
                 'id': GraphQLArgument(GraphQLString),
                 'project': GraphQLArgument(GraphQLString)
             },
-            resolver=lambda root, args, *_: get_obj_detect_image(
+            resolver=lambda root, args, *_: get_obj_detect_img(
                 args.get('id'), args.get('project')
             ),
         ),

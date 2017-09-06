@@ -10,10 +10,31 @@ import config as cfg
 
 DEFAULT_COLS = ['id','labels','model_labels']
 
+COLORS = [
+    'red',
+    'blue',
+    'orange',
+    'green',
+    'yellow',
+    'purple',
+    'grey'
+]
 
 
-def load_obj_detect_img(id_, project):
-    return IMAGE1
+def load_obj_detect_img(id_, project, dset=cfg.UNLABELED):
+    fold = load_fold(project)
+    return fold[dset][id_]
+
+
+def get_obj_detect_label_opts(project):
+    fold = load_fold(project)
+    labels = []
+    for i,v in enumerate(fold['label_names']):
+        labels.append({
+            'value': v,
+            'color': COLORS[i]
+        })
+    return labels
 
 
 def get_fpath(proj_name, fname):
@@ -36,7 +57,7 @@ def init_dataset(name, input_dir, file_ext, label_names=None):
         'created': time.strftime("%m/%d/%Y %H:%M:%S", time.localtime())
     }
     for id_ in ids:
-        fold['unlabeled'][id_] = id_
+        fold['unlabeled'][id_] = None
     os.makedirs(os.path.join(cfg.LABEL_PATH, name), exist_ok=True)
     # Path(get_fpath(name, cfg.METRICS_FNAME)).touch()
     # Path(get_fpath(name, cfg.PREDS_FNAME)).touch()
@@ -55,6 +76,12 @@ def make_entry(labels=None, model_labels=None, model_probs=None):
     }
 
 
+def make_obj_detect_entry(bbs):
+    return {
+        'bounding_boxes': bbs,
+    }
+
+
 def add_or_update_entry(fold, dset, id_, entry):
     print("Adding or updating entry")
     fold[dset][id_] = entry
@@ -69,6 +96,7 @@ def move_unlabeled_to_labeled(fold, dset, id_, entry):
 def load_fold(name):
     fpath = get_fpath(name, cfg.FOLD_FNAME)
     return utils.files.load_json(fpath)
+
 
 def save_fold(fold):
     fpath = get_fpath(fold["name"], cfg.FOLD_FNAME)
@@ -166,8 +194,6 @@ IMAGE1 = {
     "id": TEST_IMG,
     "project": TEST_PROJECT,
     "src": IMG_SRC, #"http://www.nature.org/cs/groups/webcontent/@photopublic/documents/media/bluebird-640x400-1.jpg",
-    "width": 640,
-    "height": 400,
     "boundingBoxes": [
         BOX1
     ]

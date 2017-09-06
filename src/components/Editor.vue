@@ -18,8 +18,8 @@
 
 <script>
 import {fabric} from 'fabric'
-import { OBJ_DETECT_IMG_QUERY } from '../constants/queries'
-import { OBJ_DETECT_LABEL_OPT_QUERY } from '../constants/queries'
+import { OBJ_DETECT_IMG_QUERY } from '../constants/graphql'
+import { OBJ_DETECT_LABEL_OPT_QUERY } from '../constants/graphql'
 
 
 var LabeledRect = fabric.util.createClass(fabric.Rect, {
@@ -262,7 +262,6 @@ export default {
         'height': rect.get('height')
       }
     },
-
 
     extractBBs: function () {
       let bbs = [];
