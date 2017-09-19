@@ -224,12 +224,12 @@ export default {
       let self = this;
       for (let shape of shapes) {
         rect = new LabeledRect({
-          left: shape.coords.x,
-          top: shape.coords.y,            
+          left: shape.coords.xmin,
+          top: shape.coords.ymin,            
           originX: 'left',
           originY: 'top',
-          width: shape.coords.width,
-          height: shape.coords.height,
+          width: shape.coords.xmax - shape.coords.xmin,
+          height: shape.coords.ymax - shape.coords.ymin,
           angle: 0,
           fill: self.colors[shape.label],
           transparentCorners: false,
@@ -277,10 +277,10 @@ export default {
     extractCoords: function (rect) {
       let coords = rect.get('aCoords');
       return {
-        'x': coords['tl']['x'],
-        'y': coords['tl']['y'],
-        'width': coords['tr']['x'] - coords['tl']['x'],
-        'height': coords['br']['y'] - coords['tr']['y'],
+        'xmin': coords['tl']['x'],
+        'ymin': coords['tl']['y'],
+        'xmax': coords['tr']['x'],
+        'ymax': coords['br']['y']
       }
     },
 
@@ -293,7 +293,9 @@ export default {
         bb.id = o.get('id');
         bb.label = o.get('label');
         bb.coords = self.extractCoords(o);
-        if (bb.coords.height !== 0 && bb.coords.width !== 0) {
+        let width = bb.coords.xmax - bb.coords.xmin;
+        let height = bb.coords.ymax - bb.coords.ymin;
+        if (width !== 0 && height !== 0) {
             bbs.push(bb);
         }
       });

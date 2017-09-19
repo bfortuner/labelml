@@ -22,7 +22,7 @@ COLORS = [
 
 
 def get_fpath(proj_name, fname):
-    return os.path.join(cfg.LABEL_PATH, proj_name, fname)
+    return os.path.join(cfg.BASE_PATH, proj_name, fname)
 
 
 def init_dataset(name, input_dir, file_ext, label_names=None):
@@ -42,7 +42,7 @@ def init_dataset(name, input_dir, file_ext, label_names=None):
     }
     for id_ in ids:
         fold['unlabeled'][id_] = None
-    os.makedirs(os.path.join(cfg.LABEL_PATH, name), exist_ok=True)
+    # os.makedirs(get_fpath(name, cfg._FNAME), exist_ok=True)
     # Path(get_fpath(name, cfg.METRICS_FNAME)).touch()
     # Path(get_fpath(name, cfg.PREDS_FNAME)).touch()
     utils.files.save_json(get_fpath(name, cfg.FOLD_FNAME), fold)
@@ -180,10 +180,10 @@ BOX1 = {
     "id": "A",
     "label": "audi",
     "coords": {
-        "x": 145,
-        "y": 49,
-        "width": 124,
-        "height": 100 
+        "xmin": 145,
+        "ymin": 49,
+        "xmax": 124,
+        "ymax": 100 
     }
 }
 

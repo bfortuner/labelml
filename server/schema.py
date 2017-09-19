@@ -18,7 +18,7 @@ Metrics = namedtuple('Metrics', 'accuracy loss counts')
 Counts = namedtuple('Counts', 'trn val tst unlabeled')
 ImageList = namedtuple('ImageList', 'images') 
 BoundingBox = namedtuple('BoundingBox', 'id label coords')
-Coords = namedtuple('Coords', 'x y width height')
+Coords = namedtuple('Coords', 'xmin ymin xmax ymax')
 ObjDetectImage = namedtuple('ObjDetectImage', 'id project src boundingBoxes') 
 ObjDetectLabelOpts = namedtuple('ObjDetectLabelOpts', 'labels') 
 ColorLabel = namedtuple('ColorLabel', 'value color') 
@@ -27,16 +27,16 @@ ColorLabel = namedtuple('ColorLabel', 'value color')
 CoordsType = GraphQLObjectType(
     name='Coords',
     fields= {
-        'x': GraphQLField(
+        'xmin': GraphQLField(
             GraphQLNonNull(GraphQLInt),
         ),
-        'y': GraphQLField(
+        'ymin': GraphQLField(
             GraphQLNonNull(GraphQLInt),
         ),
-        'width': GraphQLField(
+        'xmax': GraphQLField(
             GraphQLNonNull(GraphQLInt),
         ),
-        'height': GraphQLField(
+        'ymax': GraphQLField(
             GraphQLNonNull(GraphQLInt),
         )
     }
@@ -45,16 +45,16 @@ CoordsType = GraphQLObjectType(
 CoordsInputType = GraphQLInputObjectType(
     name='CoordsInput',
     fields= {
-        'x': GraphQLInputObjectField(
+        'xmin': GraphQLInputObjectField(
             GraphQLNonNull(GraphQLInt),
         ),
-        'y': GraphQLInputObjectField(
+        'ymin': GraphQLInputObjectField(
             GraphQLNonNull(GraphQLInt),
         ),
-        'width': GraphQLInputObjectField(
+        'xmax': GraphQLInputObjectField(
             GraphQLNonNull(GraphQLInt),
         ),
-        'height': GraphQLInputObjectField(
+        'ymax': GraphQLInputObjectField(
             GraphQLNonNull(GraphQLInt),
         )
     }
@@ -270,10 +270,10 @@ def get_obj_detect_img(id_, project):
 
 def make_coords(coords):
     return Coords(
-        x=coords["x"],
-        y=coords["y"],
-        width=coords["width"],
-        height=coords["height"] 
+        xmin=coords["xmin"],
+        ymin=coords["ymin"],
+        xmax=coords["xmax"],
+        ymax=coords["ymax"] 
     )
 
 
@@ -401,8 +401,9 @@ def get_images(image_list):
     return map(get_image, image_list.images)
 
 
-def get_image_single(id_, dset=cfg.UNLABELED):
-    fold = data.load_fold(cfg.FOLD_FPATH)
+def get_image_single(project, id_, dset=cfg.UNLABELED):
+    fpath = data.get_fpath(proj_name, cfg.FOLD_FNAME)
+    fold = data.load_fold(fpath)
     return make_image(id_, fold, dset)
 
 
@@ -503,5 +504,9 @@ MutationRootType = GraphQLObjectType(
 
 Schema = GraphQLSchema(QueryRootType, MutationRootType)
 
-# if not os.path.exists(cfg.FOLD_FPATH):
-#     _ = data.init_dataset(cfg.MEDIA_PATH, cfg.FOLD_FPATH)
+
+# Init test project
+fold_fpath = data.get_fpath(cfg.PROJECT_NAME, cfg.FOLD_FNAME)
+if not os.path.exists(fold_fpath):
+    _ = data.init_dataset(cfg.PROJECT_NAME, cfg.MEDIA_PATH, 
+                          cfg.IMG_EXT, cfg.DEFAULT_LABELS)

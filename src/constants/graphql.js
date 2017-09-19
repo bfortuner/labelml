@@ -21,10 +21,10 @@ query NextObjDetectImage($project:String!) {
           	id
             label
             coords {
-                x
-                y
-                width
-                height
+                xmin
+                ymin
+                xmax
+                ymax
             }
         }
     }
@@ -41,10 +41,10 @@ query ObjDetectImageQuery($id:String!, $project:String!) {
           	id
             label
             coords {
-                x
-                y
-                width
-                height
+                xmin
+                ymin
+                xmax
+                ymax
             }
         }
     }

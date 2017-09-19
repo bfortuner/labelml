@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_cors import CORS
 from flask_graphql import GraphQLView
@@ -24,7 +25,7 @@ app = create_app(graphiql=True)
 
 @app.route('/img/<project>/<filename>')
 def image(project, filename):
-    img_dir = cfg.MEDIA_PATH #os.path.join(cfg.MEDIA_PATH, project)
+    img_dir = cfg.MEDIA_PATH
     return send_from_directory(img_dir, filename)
 
 

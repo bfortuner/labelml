@@ -11,7 +11,7 @@ Vue.config.productionTip = false
 const apolloClient = new ApolloClient({
   networkInterface: createNetworkInterface({
     uri: 'http://localhost:5000/graphql',
-    transportBatching: true ,
+    transportBatching: true,
   }),
 });
 
