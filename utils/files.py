@@ -9,7 +9,12 @@ from contextlib import closing
 from zipfile import ZipFile, ZIP_DEFLATED
 import re
 import bcolz
+import uuid
 
+
+
+def gen_unique_id(prefix='', length=5):
+    return prefix + str(uuid.uuid4()).upper().replace('-','')[:length]
 
 
 def get_fnames_from_fpaths(fpaths):

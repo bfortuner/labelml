@@ -220,16 +220,16 @@ export default {
     },
 
     loadBBs: function() {
-      let shapes = this.image.boundingBoxes;
+      let shapes = this.image.bboxes;
       let self = this;
       for (let shape of shapes) {
         rect = new LabeledRect({
-          left: shape.coords.xmin,
-          top: shape.coords.ymin,            
+          left: shape.xmin,
+          top: shape.ymin,            
           originX: 'left',
           originY: 'top',
-          width: shape.coords.xmax - shape.coords.xmin,
-          height: shape.coords.ymax - shape.coords.ymin,
+          width: shape.xmax - shape.xmin,
+          height: shape.ymax - shape.ymin,
           angle: 0,
           fill: self.colors[shape.label],
           transparentCorners: false,
@@ -261,40 +261,27 @@ export default {
         let obj = canvas.getActiveObject();
         canvas.remove(obj);
     },
-
-    extractCoords: function (rect) {
-        let coords = {}
-        let coordObj = rect.get('aCoords');
-        for (let key of Object.keys(coordObj)) {
-            coords[key] = {
-                'x':coordObj[key]['x'],
-                'y':coordObj[key]['y']
-            }
-        }
-        return coords;
-    },
     
-    extractCoords: function (rect) {
+    extractBB: function (rect) {
+      let bb = {}
       let coords = rect.get('aCoords');
-      return {
-        'xmin': coords['tl']['x'],
-        'ymin': coords['tl']['y'],
-        'xmax': coords['tr']['x'],
-        'ymax': coords['br']['y']
-      }
+      bb.id = rect.get('id');
+      bb.label = rect.get('label');
+      bb.xmin = coords['tl']['x'],
+      bb.ymin = coords['tl']['y'],
+      bb.xmax = coords['tr']['x'],
+      bb.ymax = coords['br']['y']
+      return bb
     },
 
     extractBBs: function () {
       let bbs = [];
       let self = this;
-      let bb;
+      let bb, width, height;
       canvas.getObjects().map(function(o) {
-        bb = {}
-        bb.id = o.get('id');
-        bb.label = o.get('label');
-        bb.coords = self.extractCoords(o);
-        let width = bb.coords.xmax - bb.coords.xmin;
-        let height = bb.coords.ymax - bb.coords.ymin;
+        bb = self.extractBB(o);
+        width = bb.xmax - bb.xmin;
+        height = bb.ymax - bb.ymin;
         if (width !== 0 && height !== 0) {
             bbs.push(bb);
         }
@@ -308,13 +295,12 @@ export default {
 
     save: function () {
       let bbs = this.extractBBs();
-      console.log(bbs);
       this.$apollo.mutate({
         mutation: SAVE_OBJ_DETECT_IMAGE,
         variables: {
           id: this.image.id,
           project: this.project,
-          boundingBoxes: bbs
+          bboxes: bbs
         }
       }).then((data) => {
         this.$apollo.queries.nextObjDetectImage.refetch();

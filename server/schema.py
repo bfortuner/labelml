@@ -17,16 +17,21 @@ Image = namedtuple('Image', 'id project src thumbnail thumbnailWidth thumbnailHe
 Metrics = namedtuple('Metrics', 'accuracy loss counts')
 Counts = namedtuple('Counts', 'trn val tst unlabeled')
 ImageList = namedtuple('ImageList', 'images') 
-BoundingBox = namedtuple('BoundingBox', 'id label coords')
-Coords = namedtuple('Coords', 'xmin ymin xmax ymax')
-ObjDetectImage = namedtuple('ObjDetectImage', 'id project src boundingBoxes') 
+BoundingBox = namedtuple('BoundingBox', 'id label xmin ymin xmax ymax')
+ObjDetectImage = namedtuple('ObjDetectImage', 'id project src bboxes') 
 ObjDetectLabelOpts = namedtuple('ObjDetectLabelOpts', 'labels') 
 ColorLabel = namedtuple('ColorLabel', 'value color') 
 
 
-CoordsType = GraphQLObjectType(
-    name='Coords',
+BoundingBoxType = GraphQLObjectType(
+    name='BoundingBox',
     fields= {
+        'id': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'label': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
         'xmin': GraphQLField(
             GraphQLNonNull(GraphQLInt),
         ),
@@ -42,9 +47,15 @@ CoordsType = GraphQLObjectType(
     }
 )
 
-CoordsInputType = GraphQLInputObjectType(
-    name='CoordsInput',
+BoundingBoxInputType = GraphQLInputObjectType(
+    name='BoundingBoxInput',
     fields= {
+        'id': GraphQLInputObjectField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'label': GraphQLInputObjectField(
+            GraphQLNonNull(GraphQLString),
+        ),
         'xmin': GraphQLInputObjectField(
             GraphQLNonNull(GraphQLInt),
         ),
@@ -56,36 +67,6 @@ CoordsInputType = GraphQLInputObjectType(
         ),
         'ymax': GraphQLInputObjectField(
             GraphQLNonNull(GraphQLInt),
-        )
-    }
-)
-
-BoundingBoxType = GraphQLObjectType(
-    name='BoundingBox',
-    fields= {
-        'id': GraphQLField(
-            GraphQLNonNull(GraphQLString),
-        ),
-        'label': GraphQLField(
-            GraphQLNonNull(GraphQLString),
-        ),
-        'coords': GraphQLField(
-            GraphQLNonNull(CoordsType),
-        ),
-    }
-)
-
-BoundingBoxInputType = GraphQLInputObjectType(
-    name='BoundingBoxInput',
-    fields= {
-        'id': GraphQLInputObjectField(
-            GraphQLNonNull(GraphQLString),
-        ),
-        'label': GraphQLInputObjectField(
-            GraphQLNonNull(GraphQLString),
-        ),
-        'coords': GraphQLInputObjectField(
-            CoordsInputType
         )
     }
 )
@@ -102,7 +83,7 @@ ObjDetectImageType = GraphQLObjectType(
         'src': GraphQLField(
             GraphQLString
         ),
-        'boundingBoxes': GraphQLField(
+        'bboxes': GraphQLField(
             GraphQLList(BoundingBoxType)
         )
     }
@@ -256,9 +237,11 @@ def make_obj_detect_label_opt(label):
 
 def get_obj_detect_label_opts(project):
     labels = data.get_obj_detect_label_opts(project)
+    print("LBS", labels)
     opts = []
     for label in labels:
         opts.append(make_obj_detect_label_opt(label))
+    print("OPTS", opts)
     return ObjDetectLabelOpts(
         labels=opts)
 
@@ -268,15 +251,6 @@ def get_obj_detect_img(id_, project):
     return make_obj_detect_image(id_, project, img)
 
 
-def make_coords(coords):
-    return Coords(
-        xmin=coords["xmin"],
-        ymin=coords["ymin"],
-        xmax=coords["xmax"],
-        ymax=coords["ymax"] 
-    )
-
-
 def make_bounding_boxes(bbList):
     bbs = []
     for box in bbList:
@@ -284,8 +258,10 @@ def make_bounding_boxes(bbList):
             BoundingBox(
                 id=box["id"],
                 label=box["label"],
-                coords=make_coords(
-                    box["coords"])
+                xmin=box["xmin"],
+                ymin=box["ymin"],
+                xmax=box["xmax"],
+                ymax=box["ymax"] 
             )
         )
     return bbs
@@ -293,12 +269,12 @@ def make_bounding_boxes(bbList):
 
 def make_obj_detect_image(id_, project, img):
     src = data.make_url(project, data.id_to_fname(id_))
-    bbs = [] if img is None else img['bounding_boxes']
+    bbs = [] if img is None else img['bboxes']
     return ObjDetectImage(
         id=id_,
         project=project,
         src=src,
-        boundingBoxes=make_bounding_boxes(bbs)
+        bboxes=make_bounding_boxes(bbs)
     )
 
 
@@ -317,11 +293,13 @@ def get_metrics(project_name):
     )
 
 
-def get_next_obj_detect_img(project, currentId=None, dset=cfg.UNLABELED):
+def get_next_obj_detect_img(project, currentId=None, dset=cfg.UNLABELED, 
+                            include_preds=True):
     fold = data.load_fold(project)
     ids = list(fold[dset].keys())
     random.shuffle(ids)
-    img = fold[dset][ids[0]]
+    img = data.load_obj_detect_img(ids[0], project, include_preds)
+    print(img)
     return make_obj_detect_image(ids[0], project, img)
 
 
@@ -494,10 +472,10 @@ MutationRootType = GraphQLObjectType(
             args={
                 'id': GraphQLArgument(GraphQLString),
                 'project': GraphQLArgument(GraphQLString),
-                'boundingBoxes': GraphQLArgument(GraphQLList(BoundingBoxInputType))
+                'bboxes': GraphQLArgument(GraphQLList(BoundingBoxInputType))
             },
             resolver=lambda root, args, *_: save_obj_detect_image(
-                args.get('id'), args.get('project'), args.get('boundingBoxes'))
+                args.get('id'), args.get('project'), args.get('bboxes'))
         ),
     }
 )

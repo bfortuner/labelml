@@ -25,8 +25,8 @@ query ObjDetectLabelOptQuery($project:String!) {
     }
 }
 
-mutation SaveObjDetectImage($id: String!, $project: String!, $boundingBoxes: [BoundingBoxInput]) {
-	saveObjDetectImage(id: $id, project: $project, boundingBoxes: $boundingBoxes) {
+mutation SaveObjDetectImage($id: String!, $project: String!, $bboxes: [BoundingBoxInput]) {
+	saveObjDetectImage(id: $id, project: $project, bboxes: $bboxes) {
     id
   }
 }
@@ -34,7 +34,7 @@ mutation SaveObjDetectImage($id: String!, $project: String!, $boundingBoxes: [Bo
 {
   "id": "testId",
   "project": "testProject",
-  "boundingBoxes": [{ 
+  "bboxes": [{ 
     "id": "sonoind",
     "label": "audi",
     "coords": {
