@@ -16,7 +16,8 @@
       min="0"
       max="1"
       step=".05"
-      v-model="sliderValue">
+      v-model="sliderValue"
+      v-on="adjustThreshold()">
     </range-slider>
     <canvas id="c"></canvas>
   </div>
@@ -32,6 +33,9 @@ import { SAVE_OBJ_DETECT_IMAGE } from '../constants/graphql'
 import { NEXT_OBJ_DETECT_IMG_QUERY } from '../constants/graphql'
 
 
+var print = function(text) {
+  console.log(text);
+}
 
 var LabeledRect = fabric.util.createClass(fabric.Rect, {
     type: 'labeledRect',
@@ -40,19 +44,24 @@ var LabeledRect = fabric.util.createClass(fabric.Rect, {
         options || (options = { });
         this.callSuper('initialize', options);
         this.set('label', options.label || '');
+        this.set('score', options.score || 1.1);
     },
 
     toObject: function() {
-        return fabric.util.object.extend(this.callSuper('toObject'), {
-        label: this.get('label')
+        return fabric.util.object.extend(
+          this.callSuper('toObject'), {
+            label: this.get('label'),
+            score: this.get('score')
         });
     },
 
     _render: function(ctx) {
         this.callSuper('_render', ctx);
+        let score = Math.round(this.score * 100) / 100;
+        let text = this.label + " (" + score + ")";
         ctx.font = '10px Helvetica';
         ctx.fillStyle = '#ffffff';
-        ctx.fillText(this.label, -this.width/2, -this.height/2 + 8);
+        ctx.fillText(text, -this.width/2, -this.height/2 + 8);
     }
 });
 
@@ -189,7 +198,7 @@ export default {
           selectable: false,
           label: self.getCurLabel(),
           id: self.getRandId(),
-          opacity: 0.4,
+          opacity: 0.3,
           visible: true
         });
         canvas.add(rect);
@@ -230,7 +239,9 @@ export default {
           }
           rect.setCoords();
           isDown = false;
+          rect.score = 1.1;
       });
+      this.selectMode();
     },
 
     loadBBs: function() {
@@ -250,8 +261,9 @@ export default {
           selectable: false,
           label: shape.label,
           id: shape.id,
-          opacity: 0.4,
-          visible: shape.score >= this.sliderValue
+          opacity: 0.3,
+          visible: shape.score >= this.sliderValue,
+          score: shape.score
         });
         canvas.add(rect);
       }
@@ -282,7 +294,7 @@ export default {
       let coords = rect.get('aCoords');
       bb.id = rect.get('id');
       bb.label = rect.get('label');
-      bb.score = 1.0; //need to map back to original preds
+      bb.score = rect.get('score');
       bb.xmin = coords['tl']['x'],
       bb.ymin = coords['tl']['y'],
       bb.xmax = coords['tr']['x'],
@@ -298,7 +310,7 @@ export default {
         bb = self.extractBB(o);
         width = bb.xmax - bb.xmin;
         height = bb.ymax - bb.ymin;
-        if (width !== 0 && height !== 0) {
+        if (width !== 0 && height !== 0 && bb.score >= self.sliderValue) {
             bbs.push(bb);
         }
       });
@@ -335,7 +347,22 @@ export default {
       canvas.forEachObject(function(o) {
         o.set({selectable: true}).setCoords();
       }).selection = true;  
+    },
+
+    getBoxScore: function(id) {
+      let box = null;
+    },
+
+    adjustThreshold: function() {
+      let self = this;
+      if (canvas !== undefined) {
+        canvas.forEachObject(function(o) {
+          o.visible = o.score > self.sliderValue; 
+        })
+        canvas.renderAll();
+      }
     }
+  
   }
 
 }

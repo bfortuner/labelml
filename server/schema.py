@@ -59,6 +59,9 @@ BoundingBoxInputType = GraphQLInputObjectType(
         'label': GraphQLInputObjectField(
             GraphQLNonNull(GraphQLString),
         ),
+        'score': GraphQLInputObjectField(
+            GraphQLNonNull(GraphQLFloat),
+        ),
         'xmin': GraphQLInputObjectField(
             GraphQLNonNull(GraphQLInt),
         ),
