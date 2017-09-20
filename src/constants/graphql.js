@@ -20,6 +20,7 @@ query NextObjDetectImage($project:String!) {
         bboxes {
           	id
             label
+            score
             xmin
             ymin
             xmax
@@ -38,6 +39,7 @@ query ObjDetectImageQuery($id:String!, $project:String!) {
         bboxes {
           	id
             label
+            score
             xmin
             ymin
             xmax

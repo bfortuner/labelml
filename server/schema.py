@@ -17,7 +17,7 @@ Image = namedtuple('Image', 'id project src thumbnail thumbnailWidth thumbnailHe
 Metrics = namedtuple('Metrics', 'accuracy loss counts')
 Counts = namedtuple('Counts', 'trn val tst unlabeled')
 ImageList = namedtuple('ImageList', 'images') 
-BoundingBox = namedtuple('BoundingBox', 'id label xmin ymin xmax ymax')
+BoundingBox = namedtuple('BoundingBox', 'id label score xmin ymin xmax ymax')
 ObjDetectImage = namedtuple('ObjDetectImage', 'id project src bboxes') 
 ObjDetectLabelOpts = namedtuple('ObjDetectLabelOpts', 'labels') 
 ColorLabel = namedtuple('ColorLabel', 'value color') 
@@ -31,6 +31,9 @@ BoundingBoxType = GraphQLObjectType(
         ),
         'label': GraphQLField(
             GraphQLNonNull(GraphQLString),
+        ),
+        'score': GraphQLField(
+            GraphQLNonNull(GraphQLFloat),
         ),
         'xmin': GraphQLField(
             GraphQLNonNull(GraphQLInt),
@@ -258,6 +261,7 @@ def make_bounding_boxes(bbList):
             BoundingBox(
                 id=box["id"],
                 label=box["label"],
+                score=box["score"],
                 xmin=box["xmin"],
                 ymin=box["ymin"],
                 xmax=box["xmax"],
@@ -380,7 +384,7 @@ def get_images(image_list):
 
 
 def get_image_single(project, id_, dset=cfg.UNLABELED):
-    fpath = data.get_fpath(proj_name, cfg.FOLD_FNAME)
+    fpath = data.get_fpath(project, cfg.FOLD_FNAME)
     fold = data.load_fold(fpath)
     return make_image(id_, fold, dset)
 
@@ -487,4 +491,4 @@ Schema = GraphQLSchema(QueryRootType, MutationRootType)
 fold_fpath = data.get_fpath(cfg.PROJECT_NAME, cfg.FOLD_FNAME)
 if not os.path.exists(fold_fpath):
     _ = data.init_dataset(cfg.PROJECT_NAME, cfg.MEDIA_PATH, 
-                          cfg.IMG_EXT, cfg.DEFAULT_LABELS)
+                          cfg.IMG_EXT, cfg.PROJECT_LABELS)

@@ -11,12 +11,21 @@
         {{ label.value }}
       </option>
     </select>
+    <range-slider
+      class="slider"
+      min="0"
+      max="1"
+      step=".05"
+      v-model="sliderValue">
+    </range-slider>
     <canvas id="c"></canvas>
   </div>
 </template>
 
 <script>
 import {fabric} from 'fabric'
+import RangeSlider from 'vue-range-slider'
+import 'vue-range-slider/dist/vue-range-slider.css'
 import { OBJ_DETECT_IMG_QUERY } from '../constants/graphql'
 import { OBJ_DETECT_LABEL_OPT_QUERY } from '../constants/graphql'
 import { SAVE_OBJ_DETECT_IMAGE } from '../constants/graphql'
@@ -54,14 +63,18 @@ var isDrawing = true;
 
 export default {
   name: 'editor',
-  components: { fabric },
+  components: { 
+    fabric,
+    RangeSlider
+  },
   props: ['project'],
   data () {
     return {
       id: '',
       image: {},
       objDetectLabelOpts: [],
-      selectedLabel: ''
+      selectedLabel: '',
+      sliderValue: 0.5
     }
   },
 
@@ -176,7 +189,8 @@ export default {
           selectable: false,
           label: self.getCurLabel(),
           id: self.getRandId(),
-          opacity: 0.5
+          opacity: 0.4,
+          visible: true
         });
         canvas.add(rect);
       });
@@ -236,7 +250,8 @@ export default {
           selectable: false,
           label: shape.label,
           id: shape.id,
-          opacity: 0.5
+          opacity: 0.4,
+          visible: shape.score >= this.sliderValue
         });
         canvas.add(rect);
       }
@@ -267,6 +282,7 @@ export default {
       let coords = rect.get('aCoords');
       bb.id = rect.get('id');
       bb.label = rect.get('label');
+      bb.score = 1.0; //need to map back to original preds
       bb.xmin = coords['tl']['x'],
       bb.ymin = coords['tl']['y'],
       bb.xmax = coords['tr']['x'],
@@ -343,5 +359,11 @@ li {
 
 a {
   color: #42b983;
+}
+
+
+.slider {
+  /* overwrite slider styles */
+  width: 200px;
 }
 </style>

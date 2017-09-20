@@ -5,16 +5,27 @@ import os
 ENDPOINT = 'http://localhost:5000'
 IMG_ENDPOINT = ENDPOINT + '/img'
 
-PROJECT_NAME = 'VOC2007' #'oxfordpets'
+PROJECT_NAME = 'udacity' #'VOC2007' #'oxfordpets'
 BASE_PATH = '/Users/bfortuner/data' #'/Users/bfortuner/workplace/data/VOC2007'
 PROJECT_PATH = os.path.join(BASE_PATH, PROJECT_NAME)
 MEDIA_PATH = os.path.join(BASE_PATH, PROJECT_NAME, 'images')
+# DEFAULT_LABELS = (
+#     'aeroplane', 'bicycle', 'bird', 'boat',
+#     'bottle', 'bus', 'car', 'cat', 'chair',
+#     'cow', 'diningtable', 'dog', 'horse',
+#     'motorbike', 'person', 'pottedplant',
+#     'sheep', 'sofa', 'train', 'tvmonitor')
+
 DEFAULT_LABELS = (
-    'aeroplane', 'bicycle', 'bird', 'boat',
+    'aeroplane', 'biker', 'bird', 'boat',
     'bottle', 'bus', 'car', 'cat', 'chair',
     'cow', 'diningtable', 'dog', 'horse',
-    'motorbike', 'person', 'pottedplant',
-    'sheep', 'sofa', 'train', 'tvmonitor')
+    'motorbike', 'pedestrian', 'pottedplant',
+    'sheep', 'sofa', 'truck', 'trafficlight')
+
+PROJECT_LABELS = (
+    'car', 'motorbike', 'pedestrian', 'biker'
+)
 
 METRICS_FNAME = 'metrics.json'
 FOLD_FNAME = 'labels.json'

@@ -68,10 +68,15 @@ def make_entry(labels=None, model_labels=None, model_probs=None):
     }
 
 
-def add_bbox_ids(bboxes):
-    for bb in bboxes:
-        bb['id'] = utils.files.gen_unique_id()
-    return bboxes
+def make_predicted_bbox(bboxes, labels=cfg.PROJECT_LABELS):
+    print(labels)
+    bbs = []
+    for box in bboxes:
+        print(box['label'])
+        if box['label'] in labels:
+            box['id'] = utils.files.gen_unique_id()
+            bbs.append(box)
+    return bbs
 
 
 def load_model_preds(img_id, project):
@@ -81,17 +86,16 @@ def load_model_preds(img_id, project):
         img = preds['imgs'][img_id]
         return {
             "img_id": img_id,
-            "bboxes": add_bbox_ids(img['bboxes'])
+            "bboxes": make_predicted_bbox(img['bboxes'])
         }
     return None
 
 
-def load_obj_detect_img(img_id, project, include_preds=False):
+def load_obj_detect_img(img_id, project, include_preds=True):
     fold = load_fold(project)
     for dset in [cfg.VAL, cfg.TRAIN, cfg.UNLABELED]:
         if img_id in fold[dset]:
             img = fold[dset][img_id]
-            print(img)
             if dset == cfg.UNLABELED and include_preds:
                 img = load_model_preds(img_id, project)
             return img
