@@ -62,42 +62,46 @@ function onKeyDownHandler(e) {
       deleteObject();
   }
 
-  if (e.shiftKey) {
+  // Shrink box
+  if (e.keyCode === 37 && e.shiftKey && e.altKey) {
+    print("shrink left");
     e.preventDefault();
+    obj.set({width: obj.width -= 5});
+  } else if (e.keyCode === 39 && e.shiftKey && e.altKey) {
+    e.preventDefault();
+    print("shrink right");
+    obj.set({width: obj.width -= 5})//.setCoords();
+    obj.set({left: obj.left += 5});
+  } else if (e.keyCode === 38 && e.shiftKey && e.altKey) {
+    e.preventDefault();
+    print("shrink top");
+    obj.set({height: obj.height -= 5});
+  } else if (e.keyCode === 40 && e.shiftKey && e.altKey) {
+    e.preventDefault();
+    print("shrink bottom");
+    obj.set({height: obj.height -= 5})
+    obj.set({top: obj.top += 5});
 
-    // Shrink box
-    if (e.keyCode === 37 && e.shiftKey && e.altKey) {
-      print("shrink left");
-      obj.set({width: obj.width -= 5});
-    } else if (e.keyCode === 39 && e.shiftKey && e.altKey) {
-      print("shrink right");
-      obj.set({width: obj.width -= 5})//.setCoords();
-      obj.set({left: obj.left += 5});
-    } else if (e.keyCode === 38 && e.shiftKey && e.altKey) {
-      print("shrink top");
-      obj.set({height: obj.height -= 5});
-    } else if (e.keyCode === 40 && e.shiftKey && e.altKey) {
-      print("shrink bottom");
-      obj.set({height: obj.height -= 5})
-      obj.set({top: obj.top += 5});
+  // Stretch box
+  } else if (e.keyCode === 37 && e.shiftKey) {
+    e.preventDefault();
+    print("stretch left");
+    obj.set({width: obj.width += 5})//.setCoords();
+    obj.set({left: obj.left -= 5});
+  } else if (e.keyCode === 39 && e.shiftKey) {
+    e.preventDefault();
+    print("stretch right");
+    obj.set({width: obj.width += 5});
+  } else if (e.keyCode === 38 && e.shiftKey) {
+    e.preventDefault();
+    print("stretch top");
+    obj.set({height: obj.height += 5})
+    obj.set({top: obj.top -= 5});
+  } else if (e.keyCode === 40 && e.shiftKey) {
+    e.preventDefault();
+    print("stretch bottom");
+    obj.set({height: obj.height += 5});
 
-    // Stretch box
-    } else if (e.keyCode === 37 && e.shiftKey) {
-      print("stretch left");
-      obj.set({width: obj.width += 5})//.setCoords();
-      obj.set({left: obj.left -= 5});
-    } else if (e.keyCode === 39 && e.shiftKey) {
-      print("stretch right");
-      obj.set({width: obj.width += 5});
-    } else if (e.keyCode === 38 && e.shiftKey) {
-      print("stretch top");
-      obj.set({height: obj.height += 5})
-      obj.set({top: obj.top -= 5});
-    } else if (e.keyCode === 40 && e.shiftKey) {
-      print("stretch bottom");
-      obj.set({height: obj.height += 5});
-    }
-  
   // Move box
   } else if (e.keyCode === 37) {
     e.preventDefault();
@@ -171,7 +175,8 @@ export default {
       image: {},
       objDetectLabelOpts: [],
       selectedLabel: '',
-      sliderValue: 1.0
+      sliderValue: 1.0,
+      hideUnselected: false
     }
   },
   
@@ -244,12 +249,20 @@ export default {
       } else if (e.keyCode == 68) { // d
         e.preventDefault();
         self.drawMode();
-      } else if (e.keyCode == 9 && e.shiftKey) { // shift + tab
+      } else if (e.keyCode == 72) { // h
+        e.preventDefault();
+        self.toggleUnselectedVisibility(true);
+        print('pressing h');
+      // Shift 9 but giving bugs
+      } else if (e.keyCode == 65 && e.ctrlKey) { // a
         e.preventDefault();
         self.navigateNextBox('left');
-      } else if (e.keyCode == 9) { // tab
+      } else if (e.keyCode == 69 && e.ctrlKey) { // e
         e.preventDefault();
         self.navigateNextBox('right');
+      } else if (e.keyCode === 27) { // ESC
+        e.preventDefault();
+        self.deselectObject();
       }
     });
   },
@@ -400,6 +413,11 @@ export default {
         let obj = canvas.getActiveObject();
         canvas.remove(obj);
     },
+
+    deselectObject: function () {
+      canvas.discardActiveObject();
+      canvas.renderAll();
+    },
     
     extractBB: function (rect) {
       let bb = {}
@@ -460,6 +478,10 @@ export default {
       canvas.forEachObject(function(o) {
         o.set({selectable: true}).setCoords();
       }).selection = true;
+      let obj = canvas.getActiveObject();
+      if (obj === undefined) {
+        this.setDefaultObject();
+      }
     },
 
     getBoxScore: function(id) {
@@ -470,7 +492,7 @@ export default {
       let self = this;
       if (canvas !== undefined) {
         canvas.forEachObject(function(o) {
-          o.visible = o.score > self.sliderValue;
+          o.visible = o.score >= self.sliderValue;
         })
         canvas.renderAll();
       }
@@ -499,24 +521,43 @@ export default {
         print(direction === "left");
         box = boxes[i];
         if (box.id === curBox.id) {
+          print("Found box");
           if (direction === 'right') {
-            print("DIRECTION is left")
+            print("DIRECTION is right")
             if (i+1 < boxes.length) {
-              console.log("Retnext", boxes[i+1].id, boxes[i+1].left);
-              canvas.setActiveObject(boxes[i+1]);
+              console.log("Rightnext", boxes[i+1].id, boxes[i+1].left);
+              self.setCurrentObject(boxes[i+1]);
             } else {
-              console.log("Retfirst", boxes[0].id, boxes[0].left);
-              canvas.setActiveObject(boxes[0]);
+              console.log("Rightfirst", boxes[0].id, boxes[0].left);
+              self.setCurrentObject(boxes[0]);
             }
           } else {
-            print("DIRECTION is right")
+            print("DIRECTION is left")
             if (i === 0) {
-              canvas.setActiveObject(boxes[boxes.length-1]);
+              self.setCurrentObject(boxes[boxes.length-1]);
             } else {
-              canvas.setActiveObject(boxes[i-1]);
+              self.setCurrentObject(boxes[i-1]);
             }
           }
+        } else {
+          print("Not box " + i);
         }
+      }
+      self.toggleUnselectedVisibility(false);
+      canvas.renderAll();
+    },
+
+    setCurrentObject: function(box) {
+      box.visible = true;
+      box.selectable = true;
+      canvas.setActiveObject(box);
+      canvas.renderAll();
+    },
+
+    setDefaultObject: function() {
+      let allBoxes = canvas.getObjects();
+      if (allBoxes.length > 0) {
+        this.setCurrentObject(allBoxes[0]);
       }
       canvas.renderAll();
     },
@@ -534,6 +575,28 @@ export default {
           return box;
         }
       }
+    },
+    
+    toggleUnselectedVisibility: function(updateToggle) {
+      print('toggling visibility', updateToggle);
+      if (updateToggle) {
+        console.log("Updating toggle", this.hideUnselected, !this.hideUnselected);
+        this.hideUnselected = !this.hideUnselected;
+      } 
+      let curBox = canvas.getActiveObject();
+      let allBoxes = canvas.getObjects();
+      for (let box of allBoxes) {
+        if (box.id !== curBox.id) {
+          console.log("SCORE", box.score);
+          if (box.score < this.sliderValue) {
+            box.visible = false;
+          } else {
+            console.log("Making visible", !this.hideUnselected);
+            box.visible = !this.hideUnselected;
+          }
+        }
+      }
+      canvas.renderAll();
     }
 
   }
