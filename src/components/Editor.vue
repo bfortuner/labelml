@@ -239,12 +239,17 @@ export default {
         self.save();
       } else if (e.keyCode == 78) { // n
         self.getNextImg();
-      } else if (e.keyCode == 9) { // tab
-        self.selectNextImage();
       } else if (e.keyCode == 83) { // s
         self.selectMode();
-      } else if (e.keyCode == 68) { // tab
+      } else if (e.keyCode == 68) { // d
+        e.preventDefault();
         self.drawMode();
+      } else if (e.keyCode == 9 && e.shiftKey) { // shift + tab
+        e.preventDefault();
+        self.navigateNextBox('left');
+      } else if (e.keyCode == 9) { // tab
+        e.preventDefault();
+        self.navigateNextBox('right');
       }
     });
   },
@@ -252,6 +257,7 @@ export default {
   methods: {
 
     initializeCanvas: function () {
+      let self = this;
       if (canvas == null) { 
         canvas = new fabric.Canvas('c');
       } else {
@@ -259,7 +265,6 @@ export default {
         canvas = new fabric.Canvas('c');
       }
       var img = new Image();
-      var self = this;
       img.onload = function() {
         self.configureCanvas(this.width, this.height);
       }
@@ -343,8 +348,12 @@ export default {
           });
           rect.setCoords();
           isDown = false;
+          canvas.setActiveObject(rect);
+          self.selectMode();
+          canvas.renderAll();
       });
-      this.selectMode();
+      self.selectMode();
+      canvas.renderAll();
     },
 
     loadBBs: function() {
@@ -450,7 +459,7 @@ export default {
       isDrawing = false;
       canvas.forEachObject(function(o) {
         o.set({selectable: true}).setCoords();
-      }).selection = true;  
+      }).selection = true;
     },
 
     getBoxScore: function(id) {
@@ -465,10 +474,69 @@ export default {
         })
         canvas.renderAll();
       }
-    }
-  
-  }
+    },
 
+    navigateNextBox: function(direction) {
+      print("Navigating " + direction);
+      let self = this;
+      let curBox = canvas.getActiveObject();
+      canvas.discardActiveObject();
+      let boxes = [];
+      canvas.forEachObject(function(o) {
+        if (o.score >= self.sliderValue) {
+          boxes.push(o);
+        }
+      })
+      console.log("curBox", curBox['left'], curBox['id'])
+      console.log("unsorted", boxes)
+      console.log("firstbox", boxes[0]['left'])
+      this.sortBoxesByProp(boxes, 'left');
+      console.log("sorted", boxes);
+      console.log("sortedfirstbox", boxes[0]['left'])
+      let box;
+      for (let i=0; i<boxes.length; i++) {
+        print(direction);
+        print(direction === "left");
+        box = boxes[i];
+        if (box.id === curBox.id) {
+          if (direction === 'right') {
+            print("DIRECTION is left")
+            if (i+1 < boxes.length) {
+              console.log("Retnext", boxes[i+1].id, boxes[i+1].left);
+              canvas.setActiveObject(boxes[i+1]);
+            } else {
+              console.log("Retfirst", boxes[0].id, boxes[0].left);
+              canvas.setActiveObject(boxes[0]);
+            }
+          } else {
+            print("DIRECTION is right")
+            if (i === 0) {
+              canvas.setActiveObject(boxes[boxes.length-1]);
+            } else {
+              canvas.setActiveObject(boxes[i-1]);
+            }
+          }
+        }
+      }
+      canvas.renderAll();
+    },
+
+    sortBoxesByProp: function(boxes, prop) {
+      boxes.sort(function(a, b) { 
+        return a[prop] - b[prop];
+      })
+    },
+
+    getBoxById: function(boxes, id) {
+      for (let box of boxes) {
+        console.log(box.id, box.score, box.xmin);
+        if (box.id === id) {
+          return box;
+        }
+      }
+    }
+
+  }
 }
 </script>
 
