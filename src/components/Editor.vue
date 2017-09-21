@@ -35,32 +35,9 @@ import { NEXT_OBJ_DETECT_IMG_QUERY } from '../constants/graphql'
 
 window.onkeydown = onKeyDownHandler;
 
-function deleteObject() {
-  let objs = canvas.getActiveObject();
-  if (objs !== undefined) {
-    if (objs._objects instanceof Array) {
-      for (let i in objs._objects) {
-        canvas.remove(objs._objects[i]);
-      }
-    } else {
-      canvas.remove(objs);
-    }
-  }
-  canvas.renderAll();
-  return;
-}
-
 function onKeyDownHandler(e) {
   print(e);
   let obj = canvas.getActiveObject();
-
-  // Delete box
-  switch (e.keyCode) {
-    case 46: // delete
-      deleteObject();
-    case 8: // backspace
-      deleteObject();
-  }
 
   // Shrink box
   if (e.keyCode === 37 && e.shiftKey && e.altKey) {
@@ -263,6 +240,8 @@ export default {
       } else if (e.keyCode === 27) { // ESC
         e.preventDefault();
         self.deselectObject();
+      } else if (e.keyCode === 46 || e.keyCode === 8) {
+        self.deleteObject();
       }
     });
   },
@@ -554,12 +533,36 @@ export default {
       canvas.renderAll();
     },
 
-    setDefaultObject: function() {
-      let allBoxes = canvas.getObjects();
-      if (allBoxes.length > 0) {
-        this.setCurrentObject(allBoxes[0]);
+    deleteObject: function() {
+      let objs = canvas.getActiveObject();
+      if (objs !== undefined && objs !== null) {
+        if (objs._objects instanceof Array) {
+          for (let i in objs._objects) {
+            canvas.remove(objs._objects[i]);
+          }
+        } else {
+          canvas.remove(objs);
+        }
+        canvas.renderAll();
+        this.setDefaultObject();
       }
-      canvas.renderAll();
+    },
+
+    setDefaultObject: function() {
+      if (canvas !== undefined) {
+        let boxes = canvas.getObjects();
+        console.log("LEN", boxes.length);
+        this.sortBoxesByProp(boxes, 'left');
+        for (let i in boxes) {
+          console.log("box", boxes[i].score, this.sliderValue);
+          if (boxes[i].score >= this.sliderValue) {
+            print("FOUND BOX")
+            canvas.setActiveObject(boxes[i]);
+            break;
+          }
+        }
+        canvas.renderAll();
+      }
     },
 
     sortBoxesByProp: function(boxes, prop) {
