@@ -33,6 +33,93 @@ import { SAVE_OBJ_DETECT_IMAGE } from '../constants/graphql'
 import { NEXT_OBJ_DETECT_IMG_QUERY } from '../constants/graphql'
 
 
+window.onkeydown = onKeyDownHandler;
+
+function deleteObject() {
+  let objs = canvas.getActiveObject();
+  if (objs !== undefined) {
+    if (objs._objects instanceof Array) {
+      for (let i in objs._objects) {
+        canvas.remove(objs._objects[i]);
+      }
+    } else {
+      canvas.remove(objs);
+    }
+  }
+  canvas.renderAll();
+  return;
+}
+
+function onKeyDownHandler(e) {
+  print(e);
+  let obj = canvas.getActiveObject();
+
+  // Delete box
+  switch (e.keyCode) {
+    case 46: // delete
+      deleteObject();
+    case 8: // backspace
+      deleteObject();
+  }
+
+  if (e.shiftKey) {
+    e.preventDefault();
+
+    // Shrink box
+    if (e.keyCode === 37 && e.shiftKey && e.altKey) {
+      print("shrink left");
+      obj.set({width: obj.width -= 5});
+    } else if (e.keyCode === 39 && e.shiftKey && e.altKey) {
+      print("shrink right");
+      obj.set({width: obj.width -= 5})//.setCoords();
+      obj.set({left: obj.left += 5});
+    } else if (e.keyCode === 38 && e.shiftKey && e.altKey) {
+      print("shrink top");
+      obj.set({height: obj.height -= 5});
+    } else if (e.keyCode === 40 && e.shiftKey && e.altKey) {
+      print("shrink bottom");
+      obj.set({height: obj.height -= 5})
+      obj.set({top: obj.top += 5});
+
+    // Stretch box
+    } else if (e.keyCode === 37 && e.shiftKey) {
+      print("stretch left");
+      obj.set({width: obj.width += 5})//.setCoords();
+      obj.set({left: obj.left -= 5});
+    } else if (e.keyCode === 39 && e.shiftKey) {
+      print("stretch right");
+      obj.set({width: obj.width += 5});
+    } else if (e.keyCode === 38 && e.shiftKey) {
+      print("stretch top");
+      obj.set({height: obj.height += 5})
+      obj.set({top: obj.top -= 5});
+    } else if (e.keyCode === 40 && e.shiftKey) {
+      print("stretch bottom");
+      obj.set({height: obj.height += 5});
+    }
+  
+  // Move box
+  } else if (e.keyCode === 37) {
+    e.preventDefault();
+    print("move LEFT");
+    obj.set({left: obj.left -= 5});
+  } else if (e.keyCode === 39) {
+    print("move RIGHT");
+    e.preventDefault();
+    obj.set({left: obj.left += 5});
+  } else if (e.keyCode === 38) {
+    print("move UP");
+    e.preventDefault();
+    obj.set({top: obj.top -= 5});
+  } else if (e.keyCode === 40) {
+    print("move DOWN");
+    e.preventDefault();
+    obj.set({top: obj.top += 5});
+  }
+  canvas.renderAll();
+  return;
+};
+
 var print = function(text) {
   console.log(text);
 }
@@ -44,7 +131,7 @@ var LabeledRect = fabric.util.createClass(fabric.Rect, {
         options || (options = { });
         this.callSuper('initialize', options);
         this.set('label', options.label || '');
-        this.set('score', options.score || 1.1);
+        this.set('score', options.score || 1.0);
     },
 
     toObject: function() {
@@ -77,16 +164,17 @@ export default {
     RangeSlider
   },
   props: ['project'],
+  
   data () {
     return {
       id: '',
       image: {},
       objDetectLabelOpts: [],
       selectedLabel: '',
-      sliderValue: 0.5
+      sliderValue: 1.0
     }
   },
-
+  
   apollo: {
     // image: {
     //   query: OBJ_DETECT_IMG_QUERY,
@@ -145,7 +233,20 @@ export default {
   },
 
   created: function () {
-    return
+    let self = this;
+    window.addEventListener('keyup', function(e) {
+      if (e.keyCode == 83 && e.ctrlKey) { // ctrl + s
+        self.save();
+      } else if (e.keyCode == 78) { // n
+        self.getNextImg();
+      } else if (e.keyCode == 9) { // tab
+        self.selectNextImage();
+      } else if (e.keyCode == 83) { // s
+        self.selectMode();
+      } else if (e.keyCode == 68) { // tab
+        self.drawMode();
+      }
+    });
   },
 
   methods: {
@@ -195,7 +296,7 @@ export default {
           angle: 0,
           fill: self.getColor(),
           transparentCorners: false,
-          selectable: false,
+          selectable: true,
           label: self.getCurLabel(),
           id: self.getRandId(),
           opacity: 0.3,
@@ -237,9 +338,11 @@ export default {
           if (!isDrawing) {
             return;
           }
+          rect.set({
+            score: 1.0
+          });
           rect.setCoords();
           isDown = false;
-          rect.score = 1.1;
       });
       this.selectMode();
     },
@@ -323,6 +426,7 @@ export default {
 
     save: function () {
       let bbs = this.extractBBs();
+      console.log("Saving bbs", bbs);
       this.$apollo.mutate({
         mutation: SAVE_OBJ_DETECT_IMAGE,
         variables: {
@@ -357,7 +461,7 @@ export default {
       let self = this;
       if (canvas !== undefined) {
         canvas.forEachObject(function(o) {
-          o.visible = o.score > self.sliderValue; 
+          o.visible = o.score > self.sliderValue;
         })
         canvas.renderAll();
       }
