@@ -6,7 +6,7 @@ import os
 ENDPOINT = 'http://localhost:5000'
 IMG_ENDPOINT = ENDPOINT + '/img'
 
-PROJECT_PATH = '/Users/bfortuner/data/oxfordpets' #'/bigguy/data/dogscats'
+PROJECT_PATH = '/bigguy/data/VOC2012' #/Users/bfortuner/data/oxfordpets'
 MEDIA_PATH = PROJECT_PATH + '/images'
 LABEL_PATH = os.path.join(PROJECT_PATH, 'labels') 
 PROJECT_NAME = 'test_project'
