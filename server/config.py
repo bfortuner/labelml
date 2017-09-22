@@ -1,10 +1,10 @@
 
 import os
 
-#ENDPOINT = 'http://24.5.150.30:5000'
-HOST = '10.0.0.21'
+#HOST = '24.5.150.30'
+#HOST = '10.0.0.21'
+HOST = 'localhost'
 ENDPOINT = 'http://{:s}:5000'.format(HOST)
-print(ENDPOINT)
 IMG_ENDPOINT = ENDPOINT + '/img'
 
 PROJECT_NAME = 'udacity' #'VOC2007' #'oxfordpets'
