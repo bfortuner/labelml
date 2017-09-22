@@ -2,16 +2,30 @@
 import os
 
 #ENDPOINT = 'http://24.5.150.30:5000'
-#ENDPOINT = 'http://10.0.0.21:5000'
 ENDPOINT = 'http://localhost:5000'
 IMG_ENDPOINT = ENDPOINT + '/img'
 
-PROJECT_PATH = '/bigguy/data/VOC2012' #/Users/bfortuner/data/oxfordpets'
-MEDIA_PATH = PROJECT_PATH + '/images'
-LABEL_PATH = os.path.join(PROJECT_PATH, 'labels') 
-PROJECT_NAME = 'test_project'
-PROJECT_PATH = os.path.join(LABEL_PATH, PROJECT_NAME)
-METADATA_FPATH = os.path.join(PROJECT_PATH, 'metadata.csv')
+PROJECT_NAME = 'udacity' #'VOC2007' #'oxfordpets'
+BASE_PATH = '/Users/bfortuner/data' #'/Users/bfortuner/workplace/data/VOC2007'
+PROJECT_PATH = os.path.join(BASE_PATH, PROJECT_NAME)
+MEDIA_PATH = os.path.join(BASE_PATH, PROJECT_NAME, 'images')
+# DEFAULT_LABELS = (
+#     'aeroplane', 'bicycle', 'bird', 'boat',
+#     'bottle', 'bus', 'car', 'cat', 'chair',
+#     'cow', 'diningtable', 'dog', 'horse',
+#     'motorbike', 'person', 'pottedplant',
+#     'sheep', 'sofa', 'train', 'tvmonitor')
+
+DEFAULT_LABELS = (
+    'aeroplane', 'biker', 'bird', 'boat',
+    'bottle', 'bus', 'car', 'cat', 'chair',
+    'cow', 'diningtable', 'dog', 'horse',
+    'motorbike', 'pedestrian', 'pottedplant',
+    'sheep', 'sofa', 'truck', 'trafficlight')
+
+PROJECT_LABELS = (
+    'car', 'motorbike', 'pedestrian', 'biker'
+)
 
 METRICS_FNAME = 'metrics.json'
 FOLD_FNAME = 'labels.json'

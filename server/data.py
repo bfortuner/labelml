@@ -10,19 +10,27 @@ import config as cfg
 
 DEFAULT_COLS = ['id','labels','model_labels']
 
-COLORS = [
+BASIC_COLORS = [ 
     'red',
     'blue',
     'orange',
     'green',
     'yellow',
-    'purple',
     'grey'
+    'purple',
 ]
 
 
+def make_colors(n):
+    colors = []
+    for i in range(n):
+        colors.extend(BASIC_COLORS)
+    return colors
+
+COLORS = make_colors(1000)
+
 def get_fpath(proj_name, fname):
-    return os.path.join(cfg.LABEL_PATH, proj_name, fname)
+    return os.path.join(cfg.BASE_PATH, proj_name, fname)
 
 
 def init_dataset(name, input_dir, file_ext, label_names=None):
@@ -42,7 +50,7 @@ def init_dataset(name, input_dir, file_ext, label_names=None):
     }
     for id_ in ids:
         fold['unlabeled'][id_] = None
-    os.makedirs(os.path.join(cfg.LABEL_PATH, name), exist_ok=True)
+    # os.makedirs(get_fpath(name, cfg._FNAME), exist_ok=True)
     # Path(get_fpath(name, cfg.METRICS_FNAME)).touch()
     # Path(get_fpath(name, cfg.PREDS_FNAME)).touch()
     utils.files.save_json(get_fpath(name, cfg.FOLD_FNAME), fold)
@@ -60,11 +68,37 @@ def make_entry(labels=None, model_labels=None, model_probs=None):
     }
 
 
-def load_obj_detect_img(id_, project):
+def make_predicted_bbox(bboxes, labels=cfg.PROJECT_LABELS):
+    print(labels)
+    bbs = []
+    for box in bboxes:
+        print(box['label'])
+        if box['label'] in labels:
+            box['id'] = utils.files.gen_unique_id()
+            bbs.append(box)
+    return bbs
+
+
+def load_model_preds(img_id, project):
+    fpath = get_fpath(project, cfg.PREDS_FNAME)
+    preds = utils.files.load_json(fpath)
+    if img_id in preds['imgs']:
+        img = preds['imgs'][img_id]
+        return {
+            "img_id": img_id,
+            "bboxes": make_predicted_bbox(img['bboxes'])
+        }
+    return None
+
+
+def load_obj_detect_img(img_id, project, include_preds=True):
     fold = load_fold(project)
     for dset in [cfg.VAL, cfg.TRAIN, cfg.UNLABELED]:
-        if id_ in fold[dset]:
-            return fold[dset][id_]
+        if img_id in fold[dset]:
+            img = fold[dset][img_id]
+            if dset == cfg.UNLABELED and include_preds:
+                img = load_model_preds(img_id, project)
+            return img
     return None
 
 
@@ -81,7 +115,7 @@ def get_obj_detect_label_opts(project):
 
 def make_obj_detect_entry(bbs):
     return {
-        'bounding_boxes': bbs,
+        'bboxes': bbs,
     }
 
 
@@ -179,12 +213,10 @@ def update_counts(project_name):
 BOX1 = {
     "id": "A",
     "label": "audi",
-    "coords": {
-        "x": 145,
-        "y": 49,
-        "width": 124,
-        "height": 100 
-    }
+    "xmin": 145,
+    "ymin": 49,
+    "xmax": 124,
+    "ymax": 100 
 }
 
 TEST_PROJECT = "testProject"
@@ -195,7 +227,7 @@ IMAGE1 = {
     "id": TEST_IMG,
     "project": TEST_PROJECT,
     "src": IMG_SRC, #"http://www.nature.org/cs/groups/webcontent/@photopublic/documents/media/bluebird-640x400-1.jpg",
-    "boundingBoxes": [
+    "bboxes": [
         BOX1
     ]
 }
