@@ -8,9 +8,13 @@ import VueApollo from 'vue-apollo';
 
 Vue.config.productionTip = false
 
+var HOST = '10.0.0.21' //localhost
+var uri = `http://${HOST}:5000/graphql`
+console.log(uri);
+
 const apolloClient = new ApolloClient({
   networkInterface: createNetworkInterface({
-    uri: 'http://localhost:5000/graphql',
+    uri: `http://${HOST}:5000/graphql`,
     transportBatching: true,
   }),
 });

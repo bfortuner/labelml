@@ -2,11 +2,13 @@
 import os
 
 #ENDPOINT = 'http://24.5.150.30:5000'
-ENDPOINT = 'http://localhost:5000'
+HOST = '10.0.0.21'
+ENDPOINT = 'http://{:s}:5000'.format(HOST)
+print(ENDPOINT)
 IMG_ENDPOINT = ENDPOINT + '/img'
 
 PROJECT_NAME = 'udacity' #'VOC2007' #'oxfordpets'
-BASE_PATH = '/Users/bfortuner/data' #'/Users/bfortuner/workplace/data/VOC2007'
+BASE_PATH = '/bigguy/data' # '/Users/bfortuner/data'
 PROJECT_PATH = os.path.join(BASE_PATH, PROJECT_NAME)
 MEDIA_PATH = os.path.join(BASE_PATH, PROJECT_NAME, 'images')
 # DEFAULT_LABELS = (
