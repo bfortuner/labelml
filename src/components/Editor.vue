@@ -3,8 +3,9 @@
     <button @click="getNextImg()">Next</button>
     <button @click="save()">Save</button>
     <button @click="deleteObject()">Delete</button>
-    <button @click="drawMode()">Draw</button>
-    <button @click="selectMode()">Select</button>
+    <button @click="setDrawMode()">Draw box</button>
+    <button @click="setExtremeClickMode()">Click-to-box</button>
+    <button @click="setSelectMode()">Select</button>
     <select id='select-label' v-model="selectedLabel">
       <option v-for="label in labels"
             v-bind:value="label.value" :key="label.value">
@@ -153,7 +154,11 @@ export default {
       objDetectLabelOpts: [],
       selectedLabel: '',
       sliderValue: 1.0,
-      hideUnselected: false
+      hideUnselected: false,
+      selectMode: true,
+      drawMode: false,
+      extremeClickMode: false,
+      extremeClicks: []
     }
   },
   
@@ -222,10 +227,10 @@ export default {
       } else if (e.keyCode == 78) { // n
         self.getNextImg();
       } else if (e.keyCode == 83) { // s
-        self.selectMode();
+        self.setSelectMode();
       } else if (e.keyCode == 68) { // d
         e.preventDefault();
-        self.drawMode();
+        self.setDrawMode();
       } else if (e.keyCode == 72) { // h
         e.preventDefault();
         self.toggleUnselectedVisibility(true);
@@ -247,7 +252,6 @@ export default {
   },
 
   methods: {
-
     initializeCanvas: function () {
       let self = this;
       if (canvas == null) { 
@@ -273,79 +277,113 @@ export default {
         this.image.src, 
           canvas.renderAll.bind(canvas));
 
-      let self = this;
-      canvas.on('mouse:down', function(o) {
-        if (!isDrawing) {
-          return;
-        }
-        isDown = true;
-        var pointer = canvas.getPointer(o.e);
-        origX = pointer.x;
-        origY = pointer.y;
-        var pointer = canvas.getPointer(o.e);
-        rect = new LabeledRect({
-          left: origX,
-          top: origY,
-          originX: 'left',
-          originY: 'top',
-          width: pointer.x - origX,
-          height: pointer.y - origY,
-          angle: 0,
-          fill: self.getColor(),
-          transparentCorners: false,
-          selectable: true,
-          label: self.getCurLabel(),
-          id: self.getRandId(),
-          opacity: 0.3,
-          visible: true
-        });
-        canvas.add(rect);
+      //https://github.com/kangax/fabric.js/wiki/Working-with-events
+      canvas.on({
+        'mouse:down': this.mouseDownHandler,
+        'mouse:up': this.mouseUpHandler,
+        'mouse:move': this.mouseMoveHandler
       });
-    
-      canvas.on('mouse:move', function(o) {
-        if (!isDrawing) {
-          return;
-        }
-      
-        if (!isDown) return;
-        var pointer = canvas.getPointer(o.e);
-      
-        if (origX > pointer.x) {
-          rect.set({
-            left: Math.abs(pointer.x)
-          });
-        }
-        if (origY > pointer.y) {
-          rect.set({
-            top: Math.abs(pointer.y)
-          });
-        }
-      
-        rect.set({
-          width: Math.abs(origX - pointer.x)
-        });
-        rect.set({
-          height: Math.abs(origY - pointer.y)
-        });
-      
-        canvas.renderAll();
-        });
-        
-        canvas.on('mouse:up', function(o) {
-          if (!isDrawing) {
-            return;
-          }
-          rect.set({
-            score: 1.0
-          });
-          rect.setCoords();
-          isDown = false;
-          canvas.setActiveObject(rect);
-          self.selectMode();
-          canvas.renderAll();
-      });
-      self.selectMode();
+      this.setSelectMode();
       canvas.renderAll();
+    },
+
+    mouseDownHandler: function(o) {
+      console.log("Mouse down");
+      isDown = true;
+      if (this.extremeClickMode) {
+        this.initExtremeClick(o);
+      } else if (isDrawing) {
+        this.initRectangle(o);
+      } else {
+        return;
+      }
+    },
+
+    initRectangle: function(o) {
+      console.log('handling draw');
+      var pointer = canvas.getPointer(o.e);
+      origX = pointer.x;
+      origY = pointer.y;
+      var pointer = canvas.getPointer(o.e);
+      rect = new LabeledRect({
+        left: origX,
+        top: origY,
+        originX: 'left',
+        originY: 'top',
+        width: pointer.x - origX,
+        height: pointer.y - origY,
+        angle: 0,
+        fill: this.getColor(),
+        transparentCorners: false,
+        selectable: true,
+        label: this.getCurLabel(),
+        id: this.getRandId(),
+        opacity: 0.3,
+        visible: true
+      });
+      canvas.add(rect);  
+    },
+
+    initExtremeClick: function(o) {
+      console.log('init extreme click');
+    },
+
+    saveRectangle: function(o) {
+      console.log('saving rectangle');
+      rect.set({
+        score: 1.0
+      });
+      rect.setCoords();
+      canvas.setActiveObject(rect);
+    },
+
+    mouseUpHandler: function(o) {
+      console.log("Mouse up");
+      isDown = false;
+      if (this.extremeClickMode) {
+        this.saveExtremeClick(o);
+      } else if (isDrawing) {
+        this.saveRectangle(o);
+      } else {
+        return;
+      }
+      this.setSelectMode();
+      canvas.renderAll();
+    },
+
+    mouseMoveHandler: function(o) {
+      console.log("Mouse move");
+      if (!isDrawing || !isDown) {
+        return;
+      }
+      if (this.extremeClickMode) {
+        this.handleExtremeClickMove(o);
+      } else if (this.drawMode || isDrawing) {
+        this.handleDrawMove(o);
+      } else {
+        return;
+      }
+      canvas.renderAll();
+    },
+
+    handleDrawMove: function(o) {
+      var pointer = canvas.getPointer(o.e);
+      if (origX > pointer.x) {
+        rect.set({
+          left: Math.abs(pointer.x)
+        });
+      }
+      if (origY > pointer.y) {
+        rect.set({
+          top: Math.abs(pointer.y)
+        });
+      }
+      rect.set({
+        width: Math.abs(origX - pointer.x)
+      });
+      rect.set({
+        height: Math.abs(origY - pointer.y)
+      });
     },
 
     loadBBs: function() {
@@ -445,15 +483,16 @@ export default {
       })
     },
 
-    drawMode: function () {
+    setDrawMode: function () {
       isDrawing = true;
       canvas.forEachObject(function(o) {
         o.selectable = false;
       }).selection = false;
     },
 
-    selectMode: function() {
+    setSelectMode: function() {
       isDrawing = false;
+      this.extremeClickMode = false;
       canvas.forEachObject(function(o) {
         o.set({selectable: true}).setCoords();
       }).selection = true;
@@ -580,6 +619,12 @@ export default {
       }
     },
     
+    setExtremeClickMode: function() {
+      this.extremeClickMode = true;
+      this.extremeClicks = [];
+      console.log("Entering extreme click mode");
+    },
+
     toggleUnselectedVisibility: function(updateToggle) {
       print('toggling visibility', updateToggle);
       if (updateToggle) {
