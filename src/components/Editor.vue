@@ -44,18 +44,22 @@ function onKeyDownHandler(e) {
   if (e.keyCode === 37 && e.shiftKey && e.altKey) {
     print("shrink left");
     e.preventDefault();
+    e.stopImmediatePropagation()
     obj.set({width: obj.width -= 5});
   } else if (e.keyCode === 39 && e.shiftKey && e.altKey) {
     e.preventDefault();
+    e.stopImmediatePropagation();
     print("shrink right");
     obj.set({width: obj.width -= 5})//.setCoords();
     obj.set({left: obj.left += 5});
   } else if (e.keyCode === 38 && e.shiftKey && e.altKey) {
     e.preventDefault();
+    e.stopImmediatePropagation();
     print("shrink top");
     obj.set({height: obj.height -= 5});
   } else if (e.keyCode === 40 && e.shiftKey && e.altKey) {
     e.preventDefault();
+    e.stopImmediatePropagation();
     print("shrink bottom");
     obj.set({height: obj.height -= 5})
     obj.set({top: obj.top += 5});
@@ -63,39 +67,47 @@ function onKeyDownHandler(e) {
   // Stretch box
   } else if (e.keyCode === 37 && e.shiftKey) {
     e.preventDefault();
+    e.stopImmediatePropagation();
     print("stretch left");
     obj.set({width: obj.width += 5})//.setCoords();
     obj.set({left: obj.left -= 5});
   } else if (e.keyCode === 39 && e.shiftKey) {
     e.preventDefault();
+    e.stopImmediatePropagation();
     print("stretch right");
     obj.set({width: obj.width += 5});
   } else if (e.keyCode === 38 && e.shiftKey) {
     e.preventDefault();
+    e.stopImmediatePropagation();
     print("stretch top");
     obj.set({height: obj.height += 5})
     obj.set({top: obj.top -= 5});
   } else if (e.keyCode === 40 && e.shiftKey) {
     e.preventDefault();
+    e.stopImmediatePropagation();
     print("stretch bottom");
     obj.set({height: obj.height += 5});
 
   // Move box
   } else if (e.keyCode === 37) {
     e.preventDefault();
+    e.stopImmediatePropagation();
     print("move LEFT");
     obj.set({left: obj.left -= 5});
   } else if (e.keyCode === 39) {
     print("move RIGHT");
     e.preventDefault();
+    e.stopImmediatePropagation();
     obj.set({left: obj.left += 5});
   } else if (e.keyCode === 38) {
     print("move UP");
     e.preventDefault();
+    e.stopImmediatePropagation();
     obj.set({top: obj.top -= 5});
   } else if (e.keyCode === 40) {
     print("move DOWN");
     e.preventDefault();
+    e.stopImmediatePropagation();
     obj.set({top: obj.top += 5});
   }
   canvas.renderAll();
@@ -154,7 +166,7 @@ export default {
       objDetectLabelOpts: [],
       selectedLabel: '',
       sliderValue: 1.0,
-      clickRadius: 5,
+      clickRadius: 3,
       hideUnselected: false,
       selectMode: true,
       drawMode: false,
@@ -221,20 +233,33 @@ export default {
         self.setSelectMode();
       } else if (e.keyCode == 68) { // d
         e.preventDefault();
+        e.stopImmediatePropagation();
         self.setDrawMode();
       } else if (e.keyCode == 72) { // h
         e.preventDefault();
+        e.stopImmediatePropagation();
         self.toggleUnselectedVisibility(true);
         print('pressing h');
       // Shift 9 but giving bugs
+      } else if (e.keyCode == 9 && e.shiftKey) { // tab
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        self.navigateNextBox('left');
+      } else if (e.keyCode == 9) { // tab
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        self.navigateNextBox('right');
       } else if (e.keyCode == 65 && e.ctrlKey) { // a
         e.preventDefault();
+        e.stopImmediatePropagation();
         self.navigateNextBox('left');
       } else if (e.keyCode == 69 && e.ctrlKey) { // e
         e.preventDefault();
+        e.stopImmediatePropagation();
         self.navigateNextBox('right');
       } else if (e.keyCode === 27) { // ESC
         e.preventDefault();
+        e.stopImmediatePropagation();
         self.deselectObject();
       } else if (e.keyCode === 46 || e.keyCode === 8) {
         self.deleteObject();
