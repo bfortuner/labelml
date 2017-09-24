@@ -3,7 +3,7 @@ import os
 
 #HOST = '24.5.150.30'
 HOST = '10.0.0.21'
-#HOST = 'localhost'
+HOST = 'localhost'
 ENDPOINT = 'http://{:s}:5000'.format(HOST)
 IMG_ENDPOINT = ENDPOINT + '/img'
 

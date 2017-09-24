@@ -10,7 +10,7 @@ Vue.config.productionTip = false
 
 var HOST = '24.5.150.30'
 var HOST = 'localhost'
-var HOST = '10.0.0.21'
+//var HOST = '10.0.0.21'
 
 const apolloClient = new ApolloClient({
   networkInterface: createNetworkInterface({
