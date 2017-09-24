@@ -154,6 +154,7 @@ export default {
       objDetectLabelOpts: [],
       selectedLabel: '',
       sliderValue: 1.0,
+      clickRadius: 5,
       hideUnselected: false,
       selectMode: true,
       drawMode: false,
@@ -163,18 +164,6 @@ export default {
   },
   
   apollo: {
-    // image: {
-    //   query: OBJ_DETECT_IMG_QUERY,
-    //   variables () {
-    //     return {
-    //       id: this.id,
-    //       project: this.project 
-    //     }
-    //   },
-    //   result({ data, loader, networkStatus }) {
-    //     this.initializeCanvas();
-    //   },
-    // },
     nextObjDetectImage: {
       query: NEXT_OBJ_DETECT_IMG_QUERY,
       variables () {
@@ -224,6 +213,8 @@ export default {
     window.addEventListener('keyup', function(e) {
       if (e.keyCode == 83 && e.ctrlKey) { // ctrl + s
         self.save();
+      } else if (e.keyCode == 67) { // c
+        self.setExtremeClickMode();
       } else if (e.keyCode == 78) { // n
         self.getNextImg();
       } else if (e.keyCode == 83) { // s
@@ -335,6 +326,93 @@ export default {
       });
       rect.setCoords();
       canvas.setActiveObject(rect);
+      this.setSelectMode();
+    },
+
+    saveExtremeClick: function(o) {
+      console.log('saving extreme click');
+      let pointer = canvas.getPointer(o.e);
+      let circle = new fabric.Circle({
+        radius: this.clickRadius, 
+        fill: 'blue', 
+        left: this.getXCoordFromClick(pointer),
+        top: this.getYCoordFromClick(pointer)
+      });
+      console.log(pointer.x, pointer.y, circle.left, circle.top);
+      canvas.add(circle);
+      this.extremeClicks.push(circle);
+      if (this.extremeClicks.length === 4) {
+        this.createBoxFromExtremeClicks();
+      }
+      console.log("current clicks", this.extremeClicks.length);
+    },
+
+    getXCoordFromClick: function(pointer) {
+      console.log(pointer);
+      return pointer.x - this.clickRadius;
+    },
+
+    getYCoordFromClick: function(pointer) {
+      return pointer.y - this.clickRadius;
+    },
+
+    createBoxFromExtremeClicks: function() {
+      console.log('creating box from extreme clicks');
+      let r, click, xmin, ymin, xmax, ymax;
+      for (let i in this.extremeClicks) {
+        click = this.extremeClicks[i];
+        if (xmin === undefined || click.left < xmin) {
+          xmin = click.left;
+        }
+        if (ymin === undefined || click.top < ymin) {
+          ymin = click.top;
+        }
+        if (xmax === undefined || click.left > xmax) {
+          xmax = click.left;
+        }
+        if (ymax === undefined || click.top > ymax) {
+          ymax = click.top;
+        }
+        console.log(this.extremeClicks[i]);
+      }
+      xmin += this.clickRadius;
+      ymin += this.clickRadius;
+      xmax += this.clickRadius;
+      ymax += this.clickRadius;
+      r = this.createRectFromCoords(xmin, ymin, xmax, ymax);
+      canvas.setActiveObject(r);
+      this.resetExtremeClicks();
+      canvas.renderAll();
+      this.setSelectMode();
+    },
+
+    resetExtremeClicks: function() {
+      for (let i in this.extremeClicks) {
+        canvas.remove(this.extremeClicks[i]);  
+      }
+      this.extremeClicks = [];
+      this.extremeClickMode = false;
+    },
+
+    createRectFromCoords: function(xmin, ymin, xmax, ymax) {
+      rect = new LabeledRect({
+        left: xmin,
+        top: ymin,
+        originX: 'left',
+        originY: 'top',
+        width: xmax - xmin,
+        height: ymax - ymin,
+        angle: 0,
+        fill: this.getColor(),
+        transparentCorners: false,
+        selectable: true,
+        label: this.getCurLabel(),
+        id: this.getRandId(),
+        opacity: 0.3,
+        visible: true
+      });
+      canvas.add(rect);
+      return rect;
     },
 
     mouseUpHandler: function(o) {
@@ -347,12 +425,10 @@ export default {
       } else {
         return;
       }
-      this.setSelectMode();
       canvas.renderAll();
     },
 
     mouseMoveHandler: function(o) {
-      console.log("Mouse move");
       if (!isDrawing || !isDown) {
         return;
       }
@@ -484,15 +560,20 @@ export default {
     },
 
     setDrawMode: function () {
+      this.deselectObject();
+      this.resetExtremeClicks();
       isDrawing = true;
+      this.drawMode = true;
       canvas.forEachObject(function(o) {
         o.selectable = false;
       }).selection = false;
+      
     },
 
     setSelectMode: function() {
       isDrawing = false;
-      this.extremeClickMode = false;
+      this.drawMode = false;
+      this.resetExtremeClicks();
       canvas.forEachObject(function(o) {
         o.set({selectable: true}).setCoords();
       }).selection = true;
@@ -620,6 +701,7 @@ export default {
     },
     
     setExtremeClickMode: function() {
+      this.deselectObject();
       this.extremeClickMode = true;
       this.extremeClicks = [];
       console.log("Entering extreme click mode");
