@@ -9,3 +9,8 @@ npm-debug.log
 yarn-error.log
 .idea
 *.iml
+*faster_rcnn_resnet101_coco_11_06_2017/
+*tl_inference
+*checkpoint
+*.record
+*.ckpt*
