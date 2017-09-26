@@ -7,8 +7,8 @@ HOST = 'localhost'
 ENDPOINT = 'http://{:s}:5000'.format(HOST)
 IMG_ENDPOINT = ENDPOINT + '/img'
 
-PROJECT_NAME = 'udacity' #'VOC2007' #'oxfordpets'
-BASE_PATH = '/bigguy/data' #'/Users/bfortuner/data'
+PROJECT_NAME = 'example_data' #'VOC2007' #'oxfordpets'
+BASE_PATH = '' #'/bigguy/data' #'/Users/bfortuner/data'
 PROJECT_PATH = os.path.join(BASE_PATH, PROJECT_NAME)
 MEDIA_PATH = os.path.join(BASE_PATH, PROJECT_NAME, 'images')
 print(MEDIA_PATH)

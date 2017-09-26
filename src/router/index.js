@@ -11,6 +11,10 @@ export default new Router({
       name: 'Editor',
       component: Editor,
       props: true
+    },
+    { path: '/', 
+      component: Editor, 
+      props: { project: 'example_data' } 
     }
   ]
 })

@@ -306,7 +306,6 @@ def get_next_obj_detect_img(project, currentId=None, dset=cfg.UNLABELED,
     ids = list(fold[dset].keys())
     random.shuffle(ids)
     img = data.load_obj_detect_img(ids[0], project, include_preds)
-    print(img)
     return make_obj_detect_image(ids[0], project, img)
 
 
