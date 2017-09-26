@@ -34,7 +34,8 @@ def get_fpath(proj_name, fname):
 
 
 def init_dataset(name, input_dir, file_ext, label_names=None):
-    fpaths, ids = utils.files.get_paths_to_files(input_dir, strip_ext=True)
+    fpaths, ids = utils.files.get_paths_to_files(input_dir, file_ext=cfg.IMG_EXT, 
+                                                 strip_ext=True)
     label_names = [] if label_names is None else label_names
     fold = {
         'name': name,
@@ -49,6 +50,8 @@ def init_dataset(name, input_dir, file_ext, label_names=None):
         'created': time.strftime("%m/%d/%Y %H:%M:%S", time.localtime())
     }
     for id_ in ids:
+        if 'reader' in id_:
+            print("FOUND!")
         fold['unlabeled'][id_] = None
     # os.makedirs(get_fpath(name, cfg._FNAME), exist_ok=True)
     # Path(get_fpath(name, cfg.METRICS_FNAME)).touch()

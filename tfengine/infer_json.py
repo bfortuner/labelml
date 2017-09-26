@@ -69,19 +69,8 @@ with detection_graph.as_default():
     detection_classes = detection_graph.get_tensor_by_name('detection_classes:0')
     num_detections = detection_graph.get_tensor_by_name('num_detections:0')
 
-def changelabel(label):
-  if (label=='traffic_light_red'):
-     return 'red'
-  if (label=='traffic_light_green'):
-     return 'green'
-  if (label=='traffic_light_yellow'):
-     return 'yellow'
-  return label
 
-def predict(f_id,image,data):
-      #image = Image.open(image_path)
-      # the array based representation of the image will be used later in order to prepare the
-      # result image with boxes and labels on it.
+def predict(img_id, image, data):
       #image_np = load_image_into_numpy_array(image)
       image_np = np.array(image)  
       # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
@@ -91,8 +80,8 @@ def predict(f_id,image,data):
           [detection_boxes, detection_scores, detection_classes, num_detections],
           feed_dict={image_tensor: image_np_expanded})
       # Visualization of the results of a detection.
-      #print((scores))
-      min_score_thresh=0.001
+    
+      min_score_thresh=0.01
       #vis_util.visualize_boxes_and_labels_on_image_array(
       #    image_np,
       #    np.squeeze(boxes),
@@ -118,49 +107,34 @@ def predict(f_id,image,data):
         },
       '''
       
-      data[fid] = {
-               'img_id' : fid,
+      data[img_id] = {
+               'img_id' : img_id,
                'bboxes' : []
            }
-      #data['filename']=fname
-      #data['folder']=folder
-      #data['creator']='synthetic'
       (width,height) =  image.size
-      #data['image_w_h']= image.size
-      #data['objects']=[]
       scores2=np.squeeze(scores)
       boxes2=np.squeeze(boxes)
       classes2=np.squeeze(classes).astype(np.int32)
-      print(boxes2)
-      #print(scores2,boxes2) 
       boxes=[]
       for i in range(boxes2.shape[0]):
          if scores2 is None or scores2[i] > min_score_thresh:
                   box = tuple(boxes2[i].tolist())
                   if classes2[i] in category_index.keys():
                      class_name = category_index[classes2[i]]['name']
-                  print(box)
                   x = int(round(box[1]*width))
                   y = int(round(box[0]*height))
                   x2 = int(round(box[3]*width))
                   y2 = int(round(box[2]*height))
                   onebox = {
                     "label": class_name,
-                    "score": scores2[i],
+                    "score": float(scores2[i]),
                     "xmin": x,
                     "ymin": y,
                     "xmax": x2,
                     "ymax": y2,
                   }
                   boxes.append(onebox)
-      data[fid]['bboxes']=boxes
-      print(boxes)
-      #jsondata=json.dumps(data)
-      #print(jsondata)
-
-
-
-
+      data[img_id]['bboxes'] = boxes
 
 
 
@@ -172,27 +146,25 @@ def processVideo(input_video,output):
 
 
 def processJSON():
-  json_name=os.path.join(cfg.PROJECT_PATH,cfg.FOLD_FNAME)
+  json_name=os.path.join(cfg.PROJECT_PATH, cfg.FOLD_FNAME)
   data=server.utils.files.load_json(json_name)
   data = data['unlabeled']
 
-  jsonpredictions = {
+  preds = {
     "metrics": None,
     "dset": "tst",
     "imgs": {}
   }
-  count = 0
 
-  for f_id in data.keys():
-           count = count +1
-           with tf.gfile.GFile( os.path.join(cfg.MEDIA_PATH, f_id+'.jpg') , 'rb') as fid:
-              encoded_jpg = fid.read()
-              encoded_jpg_io = io.BytesIO(encoded_jpg)
-              image = Image.open(encoded_jpg_io)
-              d=jsonpredictions['imgs']
-              predict(f_id,image,d)
-
-  server.utils.files.save_json('./predictions.json',jsonpredictions)
+  for img_id in data.keys():
+    with tf.gfile.GFile( os.path.join(cfg.MEDIA_PATH, img_id+'.jpg') , 'rb') as gfile:
+      encoded_jpg = gfile.read()
+      encoded_jpg_io = io.BytesIO(encoded_jpg)
+      image = Image.open(encoded_jpg_io)
+      predict(img_id, image, preds['imgs'])
+  server.utils.files.save_json(os.path.join(
+    cfg.PROJECT_PATH, cfg.PREDS_FNAME), preds)
+  
 if __name__ == '__main__':
    processJSON()
 

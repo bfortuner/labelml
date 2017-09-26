@@ -130,11 +130,11 @@ def create_tf_record(file_dict, dset, writer,writer_val):
     print('val',val)
 
 def batch(writer,writer_val):
-  #json_name=os.path.join(cfg.PROJECT_PATH,cfg.FOLD_FNAME)
-  json_name='./ground_truth_labels.json'
+  fname = 'ground_truth_labels.json' #cfg.FOLD_FNAME
+  json_name=os.path.join(cfg.PROJECT_PATH, fname)
   jsondata=server.utils.files.load_json(json_name)
   
-  create_tf_record(jsondata, 'trn', writer,writer_val)
+  create_tf_record(jsondata, 'imgs', writer,writer_val)
   #create_tf_record(jsondata, 'val', writer_val)
   
 
