@@ -274,6 +274,24 @@ def make_bounding_boxes(bbList):
     return bbs
 
 
+## TODO ##
+def make_polygons(bbList):
+    bbs = []
+    for box in bbList:
+        bbs.append(
+            BoundingBox(
+                id=box["id"],
+                label=box["label"],
+                score=box["score"],
+                xmin=box["xmin"],
+                ymin=box["ymin"],
+                xmax=box["xmax"],
+                ymax=box["ymax"] 
+            )
+        )
+    return bbs
+
+
 def make_obj_detect_image(id_, project, img):
     src = data.make_url(project, data.id_to_fname(id_))
     bbs = [] if img is None else img['bboxes']

@@ -5,6 +5,7 @@
     <button @click="deleteObject()">Delete</button>
     <button @click="setDrawMode()">Draw box</button>
     <button @click="setExtremeClickMode()">Click-to-box</button>
+    <button @click="setPolygonMode()">Polygon</button>
     <button @click="setSelectMode()">Select</button>
     <select id='select-label' v-model="selectedLabel">
       <option v-for="label in labels"
@@ -37,30 +38,30 @@ import { NEXT_OBJ_DETECT_IMG_QUERY } from '../constants/graphql'
 window.onkeydown = onKeyDownHandler;
 
 function onKeyDownHandler(e) {
-  print(e);
+  // print(e);
   let obj = canvas.getActiveObject();
 
   // Shrink box
   if (e.keyCode === 37 && e.shiftKey && e.altKey) {
-    print("shrink left");
+    // print("shrink left");
     e.preventDefault();
     e.stopImmediatePropagation()
     obj.set({width: obj.width -= 5});
   } else if (e.keyCode === 39 && e.shiftKey && e.altKey) {
     e.preventDefault();
     e.stopImmediatePropagation();
-    print("shrink right");
+    // print("shrink right");
     obj.set({width: obj.width -= 5})//.setCoords();
     obj.set({left: obj.left += 5});
   } else if (e.keyCode === 38 && e.shiftKey && e.altKey) {
     e.preventDefault();
     e.stopImmediatePropagation();
-    print("shrink top");
+    // print("shrink top");
     obj.set({height: obj.height -= 5});
   } else if (e.keyCode === 40 && e.shiftKey && e.altKey) {
     e.preventDefault();
     e.stopImmediatePropagation();
-    print("shrink bottom");
+    // print("shrink bottom");
     obj.set({height: obj.height -= 5})
     obj.set({top: obj.top += 5});
 
@@ -68,44 +69,44 @@ function onKeyDownHandler(e) {
   } else if (e.keyCode === 37 && e.shiftKey) {
     e.preventDefault();
     e.stopImmediatePropagation();
-    print("stretch left");
+    // print("stretch left");
     obj.set({width: obj.width += 5})//.setCoords();
     obj.set({left: obj.left -= 5});
   } else if (e.keyCode === 39 && e.shiftKey) {
     e.preventDefault();
     e.stopImmediatePropagation();
-    print("stretch right");
+    // print("stretch right");
     obj.set({width: obj.width += 5});
   } else if (e.keyCode === 38 && e.shiftKey) {
     e.preventDefault();
     e.stopImmediatePropagation();
-    print("stretch top");
+    // print("stretch top");
     obj.set({height: obj.height += 5})
     obj.set({top: obj.top -= 5});
   } else if (e.keyCode === 40 && e.shiftKey) {
     e.preventDefault();
     e.stopImmediatePropagation();
-    print("stretch bottom");
+    // print("stretch bottom");
     obj.set({height: obj.height += 5});
 
   // Move box
   } else if (e.keyCode === 37) {
     e.preventDefault();
     e.stopImmediatePropagation();
-    print("move LEFT");
+    // print("move LEFT");
     obj.set({left: obj.left -= 5});
   } else if (e.keyCode === 39) {
-    print("move RIGHT");
+    // print("move RIGHT");
     e.preventDefault();
     e.stopImmediatePropagation();
     obj.set({left: obj.left += 5});
   } else if (e.keyCode === 38) {
-    print("move UP");
+    // print("move UP");
     e.preventDefault();
     e.stopImmediatePropagation();
     obj.set({top: obj.top -= 5});
   } else if (e.keyCode === 40) {
-    print("move DOWN");
+    // print("move DOWN");
     e.preventDefault();
     e.stopImmediatePropagation();
     obj.set({top: obj.top += 5});
@@ -166,12 +167,19 @@ export default {
       objDetectLabelOpts: [],
       selectedLabel: '',
       sliderValue: 1.0,
-      clickRadius: 3,
+      clickRadius: 3.5,
       hideUnselected: false,
       selectMode: true,
       drawMode: false,
       extremeClickMode: false,
-      extremeClicks: []
+      extremeClicks: [],
+      polygonMode: false,
+      polygonX: [],
+      polygonY: [],
+      cornerSize: 8,
+      extremeClickRadius: 4,
+      polyClickRadius: 3,
+      polygonClicks: [],
     }
   },
   
@@ -227,6 +235,8 @@ export default {
         self.save();
       } else if (e.keyCode == 67) { // c
         self.setExtremeClickMode();
+      } else if (e.keyCode == 80) { // p <<<
+        self.setPolygonMode();
       } else if (e.keyCode == 78) { // n
         self.getNextImg();
       } else if (e.keyCode == 83) { // s
@@ -239,7 +249,6 @@ export default {
         e.preventDefault();
         e.stopImmediatePropagation();
         self.toggleUnselectedVisibility(true);
-        print('pressing h');
       // Shift 9 but giving bugs
       } else if (e.keyCode == 9 && e.shiftKey) { // tab
         e.preventDefault();
@@ -292,35 +301,79 @@ export default {
       canvas.setBackgroundImage(
         this.image.src, 
           canvas.renderAll.bind(canvas));
-
+      
+      this.setCornerSize(this.cornerSize);
       //https://github.com/kangax/fabric.js/wiki/Working-with-events
       canvas.on({
         'mouse:down': this.mouseDownHandler,
         'mouse:up': this.mouseUpHandler,
-        'mouse:move': this.mouseMoveHandler
+        'mouse:move': this.mouseMoveHandler,
+        'object:moving': this.objectMovingHandler,
+        'mouse:over': this.mouseOverHandler,
+        'mouse:out': this.mouseOutHandler,
       });
       this.setSelectMode();
       canvas.renderAll();
     },
 
-    mouseDownHandler: function(o) {
-      console.log("Mouse down");
-      isDown = true;
+    objectMovingHandler: function(e) {
       if (this.extremeClickMode) {
-        this.initExtremeClick(o);
+        return;
+      } else if (this.polygonMode) {
+        this.adjustPolygonClick(e);
       } else if (isDrawing) {
-        this.initRectangle(o);
+        this.initRectangle(e);
       } else {
         return;
       }
     },
 
-    initRectangle: function(o) {
-      console.log('handling draw');
-      var pointer = canvas.getPointer(o.e);
+    mouseOverHandler: function(e) {
+      //console.log("object over");
+      if (this.extremeClickMode) {
+        return;
+      } else if (this.polygonMode) {
+        this.handlePolygonMouseOver(e);
+      } else if (this.drawMode) {
+        return;
+      } else {
+        return;
+      }
+    },
+
+    mouseOutHandler: function(e) {
+      //console.log("object over");
+      if (this.extremeClickMode) {
+        return;
+      } else if (this.polygonMode) {
+        this.handlePolygonMouseOut(e);
+      } else if (this.drawMode) {
+        return;
+      } else {
+        return;
+      }
+    },
+
+    mouseDownHandler: function(e) {
+      //console.log("Mouse down", e.e.target);
+      isDown = true;
+      if (this.extremeClickMode) {
+        this.initExtremeClick(e);
+      } else if (this.polygonMode) {
+        this.initPolygon(e);
+      } else if (isDrawing) {
+        this.initRectangle(e);
+      } else {
+        return;
+      }
+    },
+
+    initRectangle: function(e) {
+      //console.log('handling draw');
+      var pointer = canvas.getPointer(e.e);
       origX = pointer.x;
       origY = pointer.y;
-      var pointer = canvas.getPointer(o.e);
+      var pointer = canvas.getPointer(e.e);
       rect = new LabeledRect({
         left: origX,
         top: origY,
@@ -335,17 +388,24 @@ export default {
         label: this.getCurLabel(),
         id: this.getRandId(),
         opacity: 0.3,
-        visible: true
+        visible: true,
+        transparentCorners: true,
+        cornerSize: this.cornerSize,
       });
       canvas.add(rect);  
     },
 
-    initExtremeClick: function(o) {
-      console.log('init extreme click');
+    initExtremeClick: function(e) {
+      //console.log('init extreme click');
     },
 
-    saveRectangle: function(o) {
-      console.log('saving rectangle');
+    initPolygon: function(e) {
+      console.log('init polygon click', canvas.getActiveObject());
+      
+    },
+
+    saveRectangle: function(e) {
+      //console.log('saving rectangle');
       rect.set({
         score: 1.0
       });
@@ -354,31 +414,204 @@ export default {
       this.setSelectMode();
     },
 
-    saveExtremeClick: function(o) {
-      console.log('saving extreme click');
-      let pointer = canvas.getPointer(o.e);
+    saveExtremeClick: function(e) {
+      //console.log('saving extreme click');
+      let pointer = canvas.getPointer(e.e);
       let circle = new fabric.Circle({
-        radius: this.clickRadius, 
+        radius: this.extremeClickRadius, 
         fill: 'blue', 
-        left: this.getXCoordFromClick(pointer),
-        top: this.getYCoordFromClick(pointer)
+        left: this.getXCoordFromClick(pointer, this.extremeClickRadius),
+        top: this.getYCoordFromClick(pointer, this.extremeClickRadius),
       });
-      console.log(pointer.x, pointer.y, circle.left, circle.top);
+      //console.log(pointer.x, pointer.y, circle.left, circle.top);
       canvas.add(circle);
       this.extremeClicks.push(circle);
       if (this.extremeClicks.length === 4) {
         this.createBoxFromExtremeClicks();
       }
-      console.log("current clicks", this.extremeClicks.length);
+      //console.log("current clicks", this.extremeClicks.length);
     },
 
-    getXCoordFromClick: function(pointer) {
-      console.log(pointer);
-      return pointer.x - this.clickRadius;
+    savePolygonClick: function(e) {
+      console.log('saving polygon click');
+      let pointer = canvas.getPointer(e.e);
+        let circle = new fabric.Circle({
+          strokeWidth: 1,
+          radius: this.polyClickRadius,
+          fill: '#fff',
+          stroke: '#666',
+          opacity: 0.8,
+          left: this.getXCoordFromClick(pointer, this.polyClickRadius),
+          top: this.getYCoordFromClick(pointer, this.polyClickRadius),
+          hasControls: false,
+          hasBorders: true,
+          selectable: true,
+          borderColor: 'white',
+          padding: 2,
+        });
+
+      if (this.polygonClicks.length === 0) {
+        // circle.selectable = true;
+        circle.lineIn = null;
+        circle.set({
+          radius: circle.radius*1.5,
+          left: this.getXCoordFromClick(pointer, circle.radius*1.5),
+          top: this.getYCoordFromClick(pointer, circle.radius*1.5),
+          stroke: 'blue',
+          hoverCursor: 'pointer'
+        })
+        canvas.add(circle);
+        this.polygonClicks.push(circle);
+      } else {
+        let startCircle = this.polygonClicks[this.polygonClicks.length-1];
+        let line = this.makePolygonLine(startCircle, circle);
+        circle.lineIn = line;
+        startCircle.lineOut = line;
+        canvas.add(line);
+        canvas.add(circle);
+        this.polygonClicks.push(circle);
+      }
+      canvas.setActiveObject(circle);
+      canvas.bringToFront(circle);
+      canvas.renderAll();
     },
 
-    getYCoordFromClick: function(pointer) {
-      return pointer.y - this.clickRadius;
+    makePolygon: function() {
+      console.log("Saving active polygon");
+      let coords = [];
+      let click, x, y;
+      for (let i in this.polygonClicks) {
+        click = this.polygonClicks[i];
+        coords.push({
+          'x': click.left + click.radius,
+          'y': click.top + click.radius
+        })
+      }
+      console.log(coords);
+      let polygon = new fabric.Polygon(coords, {
+        fill: this.getColor(),
+        selectable: false,
+        objectCaching: false,
+        opacity: 0.3,
+        hasControls: false,
+        hasBorders: true,
+        borderColor: 'white',
+        // lockMovementX: true,
+        // lockMovementY: true,
+        cornerStyle: 'circle',
+        cornerColor: 'white',
+        cornerSize: 3
+      });
+      return polygon;
+    },
+
+    savePolygon: function() {
+      let polygon = this.makePolygon();
+      canvas.add(polygon);
+      // Update labels.json
+      this.resetPolygonMode();
+      this.setSelectMode();
+      canvas.setActiveObject(polygon);
+    },
+
+    adjustPolygonClick: function(e) {
+      //console.log("adjusting polygon click");
+      let activeObj = canvas.getActiveObject();
+      let idx = this.polygonClicks.indexOf(activeObj);
+      //console.log(activeObj.lineIn, activeObj.lineOut);
+      if (activeObj.lineIn !== undefined && activeObj.lineIn !== null) {
+        activeObj.lineIn.set({
+           'x2': activeObj.left + activeObj.radius, 
+           'y2': activeObj.top + activeObj.radius 
+        });
+      }
+      if (activeObj.lineOut !== undefined && activeObj.lineOut !== null) {
+        activeObj.lineOut.set({
+           'x1': activeObj.left + activeObj.radius, 
+           'y1': activeObj.top + activeObj.radius
+        });
+      }
+      if (this.exists(this.polygon)) {
+        console.log('polygon exists', this.polygon.points);
+        this.polygon.points[idx] = {
+          'x': activeObj.left + activeObj.radius, 
+          'y': activeObj.top + activeObj.radius
+        };
+      }
+      canvas.renderAll();
+    },
+
+    handlePolygonClick: function(e) {
+      let activeObj = canvas.getActiveObject();
+      if (this.exists(this.polygon)) {
+        return;
+      } else if (this.polygonClicks.length === 0) {
+        this.savePolygonClick(e);
+      } else if (activeObj === undefined || activeObj === null) {
+        this.savePolygonClick(e);
+      } else if (this.polygonClicks[0] === activeObj && !this.exists(this.polygon)) {
+        this.savePolygon();
+      } else if (this.polygonClicks.includes(activeObj)) {
+        //console.log(activeObj.get('type'));
+        //this.adjustPolygonClick(e);
+      } else {
+        //console.log("not recognize action");
+        return;
+      }
+    },
+
+    handlePolygonMouseOver: function(e) {
+      console.log("poly point hover", e.target);
+      let obj = e.target;
+      if (obj !== undefined 
+          && obj !== null
+          && this.polygonClicks.length > 0
+          && obj === this.polygonClicks[0]) {
+        obj.set({
+          stroke: 'green',
+          fill: 'green',
+        });
+        canvas.renderAll();
+      }
+    },
+
+    handlePolygonMouseOut: function(e) {
+      console.log("poly point out", e.target);
+      let obj = e.target;
+      if (obj !== undefined 
+          && obj !== null
+          && this.polygonClicks.length > 0
+          && obj === this.polygonClicks[0]) {
+        obj.set({
+          stroke: 'blue',
+          fill: 'blue'
+        });
+        canvas.renderAll();
+      }
+    },
+
+    makePolygonLine: function(startCircle, endCircle) {
+      let coords = [
+        startCircle.left + startCircle.radius, 
+        startCircle.top + startCircle.radius, 
+        endCircle.left + endCircle.radius, 
+        endCircle.top + endCircle.radius
+      ]
+      //console.log("coords", coords);
+      return new fabric.Line(coords, {
+        fill: 'white',
+        stroke: 'white',
+        strokeWidth: 1,
+        selectable: false
+      });
+    },
+
+    getXCoordFromClick: function(pointer, radius) {
+      return pointer.x - radius;
+    },
+
+    getYCoordFromClick: function(pointer, radius) {
+      return pointer.y - radius;
     },
 
     createBoxFromExtremeClicks: function() {
@@ -405,18 +638,73 @@ export default {
       xmax += this.clickRadius;
       ymax += this.clickRadius;
       r = this.createRectFromCoords(xmin, ymin, xmax, ymax);
-      canvas.setActiveObject(r);
-      this.resetExtremeClicks();
-      canvas.renderAll();
       this.setSelectMode();
+      canvas.setActiveObject(r);
     },
 
     resetExtremeClicks: function() {
       for (let i in this.extremeClicks) {
+        print(i);
         canvas.remove(this.extremeClicks[i]);  
       }
       this.extremeClicks = [];
       this.extremeClickMode = false;
+    },
+
+    exists: function(obj) {
+      return obj !== undefined && obj !== null;  
+    },
+
+    deletePolygonClick: function(click) {
+      let idx = this.polygonClicks.indexOf(click);
+      if (idx === this.polygonClicks.length-1) {
+        canvas.remove(click.lineIn);
+      } else if (idx === 0 && this.exists(click.lineOut)) {
+        canvas.remove(click.lineOut);
+      } else if (this.exists(click.lineIn) && this.exists(click.lineOut)) {
+        let priorClick = this.polygonClicks[idx-1];
+        let nextClick = this.polygonClicks[idx+1];
+        console.log(priorClick, click.lineOut.x2);
+        priorClick.lineOut.set({
+           'x2': click.lineOut.x2,
+           'y2': click.lineOut.y2
+        });
+        nextClick.set({
+           'lineIn': priorClick.lineOut
+        });
+        canvas.remove(click.lineOut);
+      } else {
+        canvas.remove(click.lineIn);
+        canvas.remove(click.lineOut);
+      }
+      this.polygonClicks.splice(idx, 1);
+      canvas.remove(click);
+      if (idx > 0) {
+        canvas.setActiveObject(this.polygonClicks[idx-1]);
+      }
+      if (this.exists(this.polygon)) {
+        console.log("polygon exists");
+        canvas.remove(this.polygon);
+        this.savePolygon();
+      }
+    },
+
+    resetPolygonMode: function() {
+      if (this.exists(this.polygon)) {
+        //save to labels.json and reload static
+        console.log('polygon exists');
+      }
+      while (this.polygonClicks.length > 0) {
+        let idx = this.polygonClicks.length - 1;
+        this.deletePolygonClick(this.polygonClicks[idx]);
+      }
+      this.polygonMode = false;
+      this.polygon = null;
+    },
+
+    resetAllModes: function() {
+      this.resetPolygonMode();
+      this.resetExtremeClicks();
     },
 
     createRectFromCoords: function(xmin, ymin, xmax, ymax) {
@@ -429,46 +717,53 @@ export default {
         height: ymax - ymin,
         angle: 0,
         fill: this.getColor(),
-        transparentCorners: false,
         selectable: true,
         label: this.getCurLabel(),
         id: this.getRandId(),
         opacity: 0.3,
-        visible: true
+        visible: true,
+        transparentCorners: true,
+        cornerSize: this.cornerSize,
+        score: 1.0
       });
       canvas.add(rect);
+      canvas.bringToFront(rect)
       return rect;
     },
 
-    mouseUpHandler: function(o) {
+    mouseUpHandler: function(e) {
       console.log("Mouse up");
       isDown = false;
       if (this.extremeClickMode) {
-        this.saveExtremeClick(o);
+        this.saveExtremeClick(e);
+      } else if (this.polygonMode) {
+        this.handlePolygonClick(e);        
       } else if (isDrawing) {
-        this.saveRectangle(o);
+        this.saveRectangle(e);
       } else {
         return;
       }
       canvas.renderAll();
     },
 
-    mouseMoveHandler: function(o) {
+    mouseMoveHandler: function(e) {
       if (!isDrawing || !isDown) {
         return;
       }
       if (this.extremeClickMode) {
-        this.handleExtremeClickMove(o);
+        this.handleExtremeClickMove(e);
+      // } else if (this.polygonMode) {
+      //   this.movePolygonClick(e);
       } else if (this.drawMode || isDrawing) {
-        this.handleDrawMove(o);
+        this.handleDrawMove(e);
       } else {
         return;
       }
       canvas.renderAll();
     },
 
-    handleDrawMove: function(o) {
-      var pointer = canvas.getPointer(o.e);
+    handleDrawMove: function(e) {
+      var pointer = canvas.getPointer(e.e);
       if (origX > pointer.x) {
         rect.set({
           left: Math.abs(pointer.x)
@@ -506,7 +801,9 @@ export default {
           id: shape.id,
           opacity: 0.3,
           visible: shape.score >= this.sliderValue,
-          score: shape.score
+          score: shape.score,
+          transparentCorners: true,
+          cornerSize: self.cornerSize,
         });
         canvas.add(rect);
       }
@@ -554,8 +851,8 @@ export default {
       let bbs = [];
       let self = this;
       let bb, width, height;
-      canvas.getObjects().map(function(o) {
-        bb = self.extractBB(o);
+      canvas.getObjects().map(function(e) {
+        bb = self.extractBB(e);
         width = bb.xmax - bb.xmin;
         height = bb.ymax - bb.ymin;
         if (width !== 0 && height !== 0 && bb.score >= self.sliderValue) {
@@ -586,24 +883,24 @@ export default {
 
     setDrawMode: function () {
       this.deselectObject();
-      this.resetExtremeClicks();
+      this.resetAllModes();
       isDrawing = true;
       this.drawMode = true;
       canvas.forEachObject(function(o) {
         o.selectable = false;
       }).selection = false;
-      
+      canvas.renderAll();
     },
 
     setSelectMode: function() {
       isDrawing = false;
       this.drawMode = false;
-      this.resetExtremeClicks();
+      this.resetAllModes();
       canvas.forEachObject(function(o) {
         o.set({selectable: true}).setCoords();
       }).selection = true;
       let obj = canvas.getActiveObject();
-      if (obj === undefined) {
+      if (obj === undefined || obj === null) {
         this.setDefaultObject();
       }
     },
@@ -613,17 +910,20 @@ export default {
     },
 
     adjustThreshold: function() {
-      let self = this;
       if (canvas !== undefined) {
-        canvas.forEachObject(function(o) {
-          o.visible = o.score >= self.sliderValue;
-        })
+        let objs = canvas.getObjects();
+        for (let i in objs) {
+          objs[i].visible = (objs[i].score >= this.sliderValue);
+        }
+        // canvas.forEachObject(function(o) {
+        //   o.visible = (o.score >= self.sliderValue);
+        // })
         canvas.renderAll();
       }
     },
 
     navigateNextBox: function(direction) {
-      print("Navigating " + direction);
+      //print("Navigating " + direction);
       let self = this;
       let curBox = canvas.getActiveObject();
       canvas.discardActiveObject();
@@ -633,38 +933,26 @@ export default {
           boxes.push(o);
         }
       })
-      console.log("curBox", curBox['left'], curBox['id'])
-      console.log("unsorted", boxes)
-      console.log("firstbox", boxes[0]['left'])
       this.sortBoxesByProp(boxes, 'left');
-      console.log("sorted", boxes);
-      console.log("sortedfirstbox", boxes[0]['left'])
       let box;
       for (let i=0; i<boxes.length; i++) {
-        print(direction);
-        print(direction === "left");
         box = boxes[i];
         if (box.id === curBox.id) {
-          print("Found box");
           if (direction === 'right') {
-            print("DIRECTION is right")
             if (i+1 < boxes.length) {
-              console.log("Rightnext", boxes[i+1].id, boxes[i+1].left);
+              //console.log("Rightnext", boxes[i+1].id, boxes[i+1].left);
               self.setCurrentObject(boxes[i+1]);
             } else {
-              console.log("Rightfirst", boxes[0].id, boxes[0].left);
+              //console.log("Rightfirst", boxes[0].id, boxes[0].left);
               self.setCurrentObject(boxes[0]);
             }
           } else {
-            print("DIRECTION is left")
             if (i === 0) {
               self.setCurrentObject(boxes[boxes.length-1]);
             } else {
               self.setCurrentObject(boxes[i-1]);
             }
           }
-        } else {
-          print("Not box " + i);
         }
       }
       self.toggleUnselectedVisibility(false);
@@ -679,14 +967,25 @@ export default {
     },
 
     deleteObject: function() {
-      let objs = canvas.getActiveObject();
-      if (objs !== undefined && objs !== null) {
-        if (objs._objects instanceof Array) {
-          for (let i in objs._objects) {
-            canvas.remove(objs._objects[i]);
+      let obj = canvas.getActiveObject();
+      if (obj !== undefined && obj !== null) {
+        if (obj._objects instanceof Array) {
+          if (this.polygonMode) {
+            this.resetPolygonMode();
+            this.setPolygonMode();
           }
+          if (obj._objects.length > 0) {
+            for (let i in obj._objects) {
+              canvas.remove(obj._objects[i]);
+              canvas.remove(obj._objects[i].lineIn);
+              canvas.remove(obj._objects[i].lineOut);
+            }
+          }
+        } else if (this.polygonMode) {
+          this.deletePolygonClick(obj);
+          canvas.remove(obj);
         } else {
-          canvas.remove(objs);
+          canvas.remove(obj);
         }
         canvas.renderAll();
         this.setDefaultObject();
@@ -724,29 +1023,49 @@ export default {
         }
       }
     },
+
+    setCornerSize: function(size) {
+      canvas.forEachObject(function(o) {
+        o.set({cornerSize: parseFloat(size)});
+      })
+      // canvas.item(0)['cornerSize'] = parseFloat(size);
+      canvas.renderAll();
+    },
     
     setExtremeClickMode: function() {
       this.deselectObject();
+      this.resetAllModes();
       this.extremeClickMode = true;
       this.extremeClicks = [];
-      console.log("Entering extreme click mode");
+      // console.log("Entering extreme click mode");
+    },
+
+    setPolygonMode: function() {
+      this.deselectObject();
+      this.resetAllModes();
+      this.polygonMode = true;
+      this.polygonClicks = [];
+      canvas.forEachObject(function(o) {
+        o.selectable = false;
+      }).selection = false;
+      // this.polygon = new fabric.Path('M 0 0 L 300 100 L 200 300 z');
+      // this.polygon.set({ fill: 'red', stroke: 'green', opacity: 0.5 });
+      // canvas.add(this.polygon);
     },
 
     toggleUnselectedVisibility: function(updateToggle) {
-      print('toggling visibility', updateToggle);
       if (updateToggle) {
-        console.log("Updating toggle", this.hideUnselected, !this.hideUnselected);
+        //console.log("Updating toggle", this.hideUnselected, !this.hideUnselected);
         this.hideUnselected = !this.hideUnselected;
       } 
       let curBox = canvas.getActiveObject();
       let allBoxes = canvas.getObjects();
       for (let box of allBoxes) {
         if (box.id !== curBox.id) {
-          console.log("SCORE", box.score);
           if (box.score < this.sliderValue) {
             box.visible = false;
           } else {
-            console.log("Making visible", !this.hideUnselected);
+            //console.log("Making visible", !this.hideUnselected);
             box.visible = !this.hideUnselected;
           }
         }
