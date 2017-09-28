@@ -20,7 +20,8 @@ def create_app(**kwargs):
     )
     return app
 
-app = create_app(graphiql=True)
+application = create_app(graphiql=True)
+app = application
 
 
 @app.route('/img/<project>/<filename>')
@@ -30,5 +31,5 @@ def image(project, filename):
 
 
 if __name__ == '__main__':
-    CORS(app, resources={r'/graphql': {'origins': '*'}})
-    app.run(host='0.0.0.0')
+    CORS(application, resources={r'/graphql': {'origins': '*'}})
+    application.run(host='0.0.0.0')
