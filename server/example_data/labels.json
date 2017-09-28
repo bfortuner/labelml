@@ -1,19 +1,14 @@
 {
-    "label_names": [
-        "biker",
-        "car",
-        "pedestrian",
-        "trafficlight",
-        "truck"
-    ],
     "metrics": {},
     "trn": {
         "1478020217690091318": {
             "annotations": [
                 {
-                    "id": "l07754qum9",
-                    "label": "biker",
                     "polygon": {
+                        "id": "0ggz6haqau",
+                        "label": "biker",
+                        "annoId": "l07754qum9",
+                        "score": 1.0,
                         "points": [
                             {
                                 "y": 109.51171875,
@@ -35,24 +30,22 @@
                                 "id": "3kkkubobv6",
                                 "x": 460.01171875
                             }
-                        ],
-                        "id": "0ggz6haqau",
-                        "label": "biker",
-                        "score": 1.0,
-                        "annoId": "l07754qum9"
-                    }
+                        ]
+                    },
+                    "label": "biker",
+                    "id": "l07754qum9"
                 },
                 {
                     "bbox": {
                         "ymax": 693,
-                        "xmax": 703,
-                        "label": "pedestrian",
                         "annoId": "7F69090E9C",
+                        "label": "pedestrian",
+                        "xmax": 703,
+                        "id": "6EF5F371C9",
                         "ymin": 485,
                         "points": [],
-                        "id": "6EF5F371C9",
-                        "score": 0.10892622917890549,
-                        "xmin": 605
+                        "xmin": 605,
+                        "score": 0.10892622917890549
                     },
                     "label": "pedestrian",
                     "id": "7F69090E9C"
@@ -60,9 +53,10 @@
                 {
                     "bbox": {
                         "ymax": 269,
-                        "xmax": 776,
-                        "label": "biker",
                         "annoId": "w6xbirw06x",
+                        "label": "biker",
+                        "xmax": 776,
+                        "id": "ukmzrqnqow",
                         "ymin": 96,
                         "points": [
                             {
@@ -86,9 +80,8 @@
                                 "x": 660.01171875
                             }
                         ],
-                        "id": "ukmzrqnqow",
-                        "score": 1.0,
-                        "xmin": 663
+                        "xmin": 663,
+                        "score": 1.0
                     },
                     "label": "biker",
                     "id": "w6xbirw06x"
@@ -96,63 +89,168 @@
                 {
                     "bbox": {
                         "ymax": 337,
-                        "xmax": 1065,
-                        "label": "biker",
                         "annoId": "q24pw9wott",
-                        "ymin": 205,
+                        "label": "biker",
+                        "xmax": 1065,
                         "id": "n9t5ohf1kr",
-                        "score": 1.0,
-                        "xmin": 930
+                        "ymin": 205,
+                        "xmin": 930,
+                        "score": 1.0
                     },
                     "label": "biker",
                     "id": "q24pw9wott"
                 }
             ]
+        },
+        "1478020212689685926": {
+            "annotations": [
+                {
+                    "bbox": {
+                        "ymax": 662,
+                        "ymin": 553,
+                        "annoId": "CF8626C64A",
+                        "xmax": 153,
+                        "points": [],
+                        "label": "car",
+                        "id": "73D05FDD44",
+                        "xmin": 0,
+                        "score": 0.7940400838851929
+                    },
+                    "label": "car",
+                    "id": "CF8626C64A"
+                },
+                {
+                    "bbox": {
+                        "ymax": 820,
+                        "ymin": 490,
+                        "annoId": "0C400F4C4C",
+                        "xmax": 612,
+                        "points": [],
+                        "label": "car",
+                        "id": "5D34DAF36C",
+                        "xmin": 156,
+                        "score": 0.9991447925567627
+                    },
+                    "label": "car",
+                    "id": "0C400F4C4C"
+                }
+            ]
+        },
+        "1478020210190790169": {
+            "annotations": []
         }
     },
-    "inputs_dir": "example_data/images",
+    "tst": {},
+    "label_names": [
+        "biker",
+        "car",
+        "pedestrian",
+        "trafficlight",
+        "truck"
+    ],
+    "name": "example_data",
     "unlabeled": {
-        "1478020217196946967": null,
         "1478020214191388441": null,
-        "1478020215691398311": null,
-        "1478020218693157396": null,
-        "1478020219199183180": null,
-        "1478020211690815798": null,
+        "1478020216698323099": null,
         "1478020212192080435": null,
-        "1478020218191884276": null,
-        "1478020214697222108": null,
-        "1478020215192311942": null,
         "1478020213196446056": null,
         "1478020219697324624": null,
-        "1478020216698323099": null,
+        "1478020218191884276": null,
+        "1478020214697222108": null,
+        "1478020215691398311": null,
+        "1478020215192311942": null,
         "1478020216196716027": null,
-        "1478020212689685926": null,
-        "1478020210190790169": null,
+        "1478020217196946967": null,
+        "1478020211690815798": null,
+        "1478020219199183180": null,
         "1478020210691558747": null
     },
-    "name": "example_data",
-    "tst": {},
+    "file_ext": ".jpg",
+    "created": "09/28/2017 13:54:43",
+    "inputs_dir": "example_data/images",
     "val": {
+        "1478020218693157396": {
+            "annotations": [
+                {
+                    "bbox": {
+                        "ymax": 670,
+                        "annoId": "72BD63A313",
+                        "label": "car",
+                        "xmax": 480,
+                        "id": "5FA2DDB732",
+                        "ymin": 569,
+                        "points": [],
+                        "xmin": 286,
+                        "score": 0.8814324736595154
+                    },
+                    "label": "car",
+                    "id": "72BD63A313"
+                },
+                {
+                    "bbox": {
+                        "ymax": 626,
+                        "annoId": "3389DAB15A",
+                        "label": "pedestrian",
+                        "xmax": 623,
+                        "id": "A71E6FE680",
+                        "ymin": 434,
+                        "points": [],
+                        "xmin": 533,
+                        "score": 0.14422880113124847
+                    },
+                    "label": "pedestrian",
+                    "id": "3389DAB15A"
+                },
+                {
+                    "bbox": {
+                        "ymax": 627,
+                        "annoId": "45BC7E3025",
+                        "label": "pedestrian",
+                        "xmax": 740,
+                        "id": "3BEACF069F",
+                        "ymin": 441,
+                        "points": [],
+                        "xmin": 628,
+                        "score": 0.1547328531742096
+                    },
+                    "label": "pedestrian",
+                    "id": "45BC7E3025"
+                },
+                {
+                    "bbox": {
+                        "ymax": 602,
+                        "annoId": "C6A2142F7C",
+                        "label": "pedestrian",
+                        "xmax": 1277,
+                        "id": "6CA006B67D",
+                        "ymin": 419,
+                        "points": [],
+                        "xmin": 1146,
+                        "score": 0.11487658321857452
+                    },
+                    "label": "pedestrian",
+                    "id": "C6A2142F7C"
+                }
+            ]
+        },
         "1478020211190321969": {
             "annotations": [
                 {
                     "bbox": {
                         "ymax": 660,
-                        "xmax": 659,
-                        "label": "biker",
                         "annoId": "wpqadgaxlw",
+                        "label": "biker",
+                        "xmax": 659,
+                        "id": "1gvufr6x0h",
                         "ymin": 554,
                         "points": [],
-                        "id": "1gvufr6x0h",
-                        "score": 1.0,
-                        "xmin": 570
+                        "xmin": 570,
+                        "score": 1.0
                     },
                     "label": "biker",
                     "id": "wpqadgaxlw"
                 }
             ]
         }
-    },
-    "created": "09/28/2017 13:54:43",
-    "file_ext": ".jpg"
+    }
 }

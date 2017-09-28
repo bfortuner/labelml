@@ -70,5 +70,7 @@ if env == 'prod':
     ENDPOINT = ProdConfig.ENDPOINT
 else:
     ENDPOINT = DevConfig.ENDPOINT
+
+# ENDPOINT = 'http://labelml.wfcpkpjahu.us-west-1.elasticbeanstalk.com'
 IMG_ENDPOINT = ENDPOINT + '/img'
     

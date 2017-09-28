@@ -30,5 +30,5 @@ def image(project, filename):
 
 
 if __name__ == '__main__':
-    CORS(application)#, resources={r'/graphql': {'origins': '*'}})
+    CORS(application, supports_credentials=True, resources={r'/*': {'origins': '*'}})
     application.run(host='0.0.0.0')
