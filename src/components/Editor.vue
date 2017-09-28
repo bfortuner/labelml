@@ -3,11 +3,10 @@
     <button @click="getNextImg()">Next</button>
     <button @click="save()">Save</button>
     <button @click="deleteObject()">Delete</button>
-    <button @click="setDrawMode()">Draw box</button>
+    <button @click="setDrawMode()">Box</button>
     <button @click="setExtremeClickMode()">Click-to-box</button>
     <button @click="setPolygonMode()">Polygon</button>
     <button @click="setSelectMode()">Select</button>
-    <button @click="createRectangle()">Rect</button>
     <select id='select-label' v-model="selectedLabel">
       <option v-for="label in labels"
             v-bind:value="label.value" :key="label.value">
