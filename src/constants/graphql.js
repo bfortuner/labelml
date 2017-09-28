@@ -3,9 +3,9 @@ import gql from 'graphql-tag'
 
 export const SAVE_OBJ_DETECT_IMAGE = gql`
 mutation SaveObjDetectImage($id: String!, $project: String!, 
-                            $bboxes: [BoundingBoxInput]) {
+                            $bboxes: [AnnotationInput]) {
     saveObjDetectImage(id: $id, project: $project, 
-                       bboxes: $bboxes) {
+                       annotations: $annotations) {
         id
     }
 }
@@ -17,14 +17,35 @@ query NextObjDetectImage($project:String!) {
         id
         project
         src
-        bboxes {
-          	id
+        annotations {
+            id
             label
-            score
-            xmin
-            ymin
-            xmax
-            ymax
+            bbox {
+                id
+                annoId
+                label
+                score
+                xmin
+                ymin
+                xmax
+                ymax
+                points {
+                    id
+                    x
+                    y
+                }
+            }
+            polygon {
+                id
+                annoId
+                label
+                score
+                points {
+                    id
+                    x
+                    y
+                }
+            }
         }
         labels {
           color

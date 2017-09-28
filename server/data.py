@@ -70,15 +70,12 @@ def make_entry(labels=None, model_labels=None, model_probs=None):
     }
 
 
-def make_predicted_bbox(bboxes, labels=cfg.PROJECT_LABELS):
-    print(labels)
-    bbs = []
-    for box in bboxes:
-        print(box['label'])
-        if box['label'] in labels:
-            box['id'] = utils.files.gen_unique_id()
-            bbs.append(box)
-    return bbs
+def make_predicted_annotations(annotations, labels=cfg.PROJECT_LABELS):
+    annos = []
+    for anno in annotations:
+        if anno['label'] in labels:
+            annos.append(anno)
+    return annos
 
 
 def load_model_preds(img_id, project):
@@ -86,14 +83,17 @@ def load_model_preds(img_id, project):
     preds = utils.files.load_json(fpath)
     if img_id in preds['imgs']:
         img = preds['imgs'][img_id]
+        print("IMG", img)
         return {
             "img_id": img_id,
-            "bboxes": make_predicted_bbox(img['bboxes'])
+            "annotations": make_predicted_annotations(
+                img['annotations'])
         }
     return None
 
 
 def load_obj_detect_img(img_id, project, include_preds=True):
+    print(img_id, project, include_preds)
     fold = load_fold(project)
     for dset in [cfg.VAL, cfg.TRAIN, cfg.UNLABELED]:
         if img_id in fold[dset]:
