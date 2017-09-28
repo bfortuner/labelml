@@ -1,7 +1,7 @@
 import os
 import random
 from collections import namedtuple, OrderedDict
-import pandas as pd
+# import pandas as pd
 from graphql import (
     GraphQLField, GraphQLNonNull, GraphQLArgument,
     GraphQLObjectType, GraphQLList, GraphQLBoolean, GraphQLString,
