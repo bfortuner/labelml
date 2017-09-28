@@ -26,6 +26,10 @@ query NextObjDetectImage($project:String!) {
             xmax
             ymax
         }
+        labels {
+          color
+          value
+        }
     }
   }
 `;
@@ -44,6 +48,10 @@ query ObjDetectImageQuery($id:String!, $project:String!) {
             ymin
             xmax
             ymax
+        }
+        labels {
+            color
+            value
         }
     }
   }

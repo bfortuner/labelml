@@ -7,20 +7,29 @@
     <button @click="setExtremeClickMode()">Click-to-box</button>
     <button @click="setPolygonMode()">Polygon</button>
     <button @click="setSelectMode()">Select</button>
+    <button @click="createRectangle()">Rect</button>
     <select id='select-label' v-model="selectedLabel">
       <option v-for="label in labels"
             v-bind:value="label.value" :key="label.value">
         {{ label.value }}
       </option>
     </select>
-    <vue-slider
+    <range-slider
+      class="slider"
+      min="0"
+      max="1"
+      step=".05"
+      v-model="sliderValue"
+      v-on="adjustThreshold()">
+    </range-slider>
+    <!-- <vue-slider
       class="slider"
       min=0
       max=1
       interval=.05
       v-model="sliderValue"
       v-on="adjustThreshold()">
-    </vue-slider>
+    </vue-slider> -->
     <canvas id="c"></canvas>
   </div>
 </template>
@@ -28,7 +37,7 @@
 <script>
 import {fabric} from 'fabric'
 import RangeSlider from 'vue-range-slider'
-import vueSlider from 'vue-slider-component'
+
 import 'vue-range-slider/dist/vue-range-slider.css'
 import { OBJ_DETECT_IMG_QUERY } from '../constants/graphql'
 import { OBJ_DETECT_LABEL_OPT_QUERY } from '../constants/graphql'
@@ -169,15 +178,14 @@ export default {
   name: 'editor',
   components: { 
     fabric,
-    vueSlider
+    RangeSlider
   },
   props: ['project'],
   
-  data () {
+  data() {
     return {
       id: '',
       image: {},
-      objDetectLabelOpts: [],
       selectedLabel: '',
       sliderValue: 1.0,
       clickRadius: 3.5,
@@ -193,9 +201,9 @@ export default {
       extremeClickRadius: 4,
       polyClickRadius: 3,
       polygonClicks: [],
-      sliderMin: 0.0,
-      sliderMax: 1.0,
-      sliderInterval: 0.5,
+      labels: [],
+      colors: {},
+      rects: []
     }
   },
   
@@ -209,35 +217,32 @@ export default {
       },
       result({ data, loader, networkStatus }) {
         this.image = data.nextObjDetectImage;
+        this.labels = data.nextObjDetectImage.labels;
+        console.log("LBS", this.labels);
+        this.colors = this.makeColors(this.labels);
+        this.selectedLabel = this.labels[0].value;
         this.initializeCanvas();
         this.loadBBs();
       },
     },
-    objDetectLabelOpts: {
-      query: OBJ_DETECT_LABEL_OPT_QUERY,
-      variables () {
-        return {
-          project: this.project 
-        }
-      },
-      result({ data, loader, networkStatus }) {
-        this.selectedLabel = data.objDetectLabelOpts.labels[0].value;
-        this.loadBBs();
-      },
-    }   
+    // objDetectLabelOpts: {
+    //   query: OBJ_DETECT_LABEL_OPT_QUERY,
+    //   variables () {
+    //     return {
+    //       project: this.project 
+    //     }
+    //   },
+    //   result({ data, loader, networkStatus }) {
+    //     this.labels = data.objDetectLabelOpts.labels;
+    //     this.colors = this.makeColors(data.objDetectLabelOpts.labels);
+    //     this.selectedLabel = data.objDetectLabelOpts.labels[0].value;
+    //     this.loadBBs();
+    //   },
+    //}   
   },
-
+  
   computed: {
-    labels: function() {
-      return this.objDetectLabelOpts.labels;
-    },
-    colors: function () {
-      let colorMap = {}
-      for (let opt of this.objDetectLabelOpts.labels) {
-        colorMap[opt.value] = opt.color;
-      }
-      return colorMap;
-    }
+
   },
 
   mounted: function() {
@@ -293,6 +298,14 @@ export default {
   },
 
   methods: {
+    makeColors: function (labels) {
+      let colorMap = {}
+      for (let opt of labels) {
+        colorMap[opt.value] = opt.color;
+      }
+      return colorMap;
+    },
+
     initializeCanvas: function () {
       let self = this;
       if (canvas == null) { 
@@ -380,6 +393,7 @@ export default {
       } else if (isDrawing) {
         this.initRectangle(e);
       } else {
+        print("HEY");
         return;
       }
     },
@@ -412,6 +426,42 @@ export default {
       canvas.add(rect);  
     },
 
+    createRectangle: function() {
+      let circle = new fabric.Circle({
+        id: this.getRandId(),
+        radius: this.extremeClickRadius, 
+        fill: 'blue', 
+        left: 100, //this.getXCoordFromClick(pointer, this.extremeClickRadius),
+        top: 100, //this.getYCoordFromClick(pointer, this.extremeClickRadius),
+        visible: true,
+        score: 1.0,
+        labelType: EC_LABEL,
+      });
+      canvas.add(circle);
+      canvas.renderAll();
+      this.rects.push(circle.id);
+    },
+
+    getObjectById: function(id) {
+      let objs = canvas.getObjects();
+      for (let i=0; i<objs.length; i++) {
+        console.log(objs[i]);
+        if (objs[i] !== undefined && objs[i] !== null && objs[i].id === id) {
+          return objs[i];
+        }        
+      }
+    },
+
+    removeObjectById: function(id) {
+      canvas.forEachObject(function(o) {
+        if (o !== undefined && o !== null && o.id === id) {
+          canvas.remove(o);
+          canvas.renderAll();
+          return;
+        }
+      });
+    },
+
     initExtremeClick: function(e) {
       //console.log('init extreme click');
     },
@@ -432,9 +482,9 @@ export default {
     },
 
     saveExtremeClick: function(e) {
-      //console.log('saving extreme click');
       let pointer = canvas.getPointer(e.e);
       let circle = new fabric.Circle({
+        id: this.getRandId(),
         radius: this.extremeClickRadius, 
         fill: 'blue', 
         left: this.getXCoordFromClick(pointer, this.extremeClickRadius),
@@ -443,19 +493,19 @@ export default {
         score: 1.0,
         labelType: EC_LABEL,
       });
-      //console.log(pointer.x, pointer.y, circle.left, circle.top);
       canvas.add(circle);
-      this.extremeClicks.push(circle);
+      this.extremeClicks.push(circle.id);
+      canvas.renderAll();
       if (this.extremeClicks.length === 4) {
         this.createBoxFromExtremeClicks();
       }
-      //console.log("current clicks", this.extremeClicks.length);
     },
 
     savePolygonClick: function(e) {
       console.log('saving polygon click');
       let pointer = canvas.getPointer(e.e);
-        let circle = new fabric.Circle({
+      let circle = new fabric.Circle({
+          id: this.getRandId(),
           strokeWidth: 1,
           radius: this.polyClickRadius,
           fill: '#fff',
@@ -467,8 +517,9 @@ export default {
           hasBorders: true,
           selectable: true,
           borderColor: 'white',
-          padding: 2,
+          padding: 3,
           labelType: POLY_CLICK_LABEL,
+          hoverCursor: 'pointer'
         });
 
       if (this.polygonClicks.length === 0) {
@@ -478,19 +529,19 @@ export default {
           radius: circle.radius*1.5,
           left: this.getXCoordFromClick(pointer, circle.radius*1.5),
           top: this.getYCoordFromClick(pointer, circle.radius*1.5),
-          stroke: 'blue',
-          hoverCursor: 'pointer'
+          fill: 'blue',
         })
         canvas.add(circle);
-        this.polygonClicks.push(circle);
+        this.polygonClicks.push(circle.id);
       } else {
-        let startCircle = this.polygonClicks[this.polygonClicks.length-1];
+        let startCircle = this.getObjectById(
+          this.polygonClicks[this.polygonClicks.length-1]);
         let line = this.makePolygonLine(startCircle, circle);
         circle.lineIn = line;
         startCircle.lineOut = line;
         canvas.add(line);
         canvas.add(circle);
-        this.polygonClicks.push(circle);
+        this.polygonClicks.push(circle.id);
       }
       canvas.setActiveObject(circle);
       canvas.bringToFront(circle);
@@ -501,8 +552,8 @@ export default {
       console.log("Saving active polygon");
       let coords = [];
       let click, x, y;
-      for (let i in this.polygonClicks) {
-        click = this.polygonClicks[i];
+      for (let id of this.polygonClicks) {
+        click = this.getObjectById(id);
         coords.push({
           'x': click.left + click.radius,
           'y': click.top + click.radius
@@ -510,6 +561,7 @@ export default {
       }
       console.log(coords);
       let polygon = new fabric.Polygon(coords, {
+        id: this.getRandId(),
         fill: this.getColor(),
         selectable: false,
         objectCaching: false,
@@ -540,7 +592,7 @@ export default {
     adjustPolygonClick: function(e) {
       //console.log("adjusting polygon click");
       let activeObj = canvas.getActiveObject();
-      let idx = this.polygonClicks.indexOf(activeObj);
+      let idx = this.polygonClicks.indexOf(activeObj.id);
       //console.log(activeObj.lineIn, activeObj.lineOut);
       if (activeObj.lineIn !== undefined && activeObj.lineIn !== null) {
         activeObj.lineIn.set({
@@ -572,9 +624,9 @@ export default {
         this.savePolygonClick(e);
       } else if (activeObj === undefined || activeObj === null) {
         this.savePolygonClick(e);
-      } else if (this.polygonClicks[0] === activeObj && !this.exists(this.polygon)) {
+      } else if (this.polygonClicks[0] === activeObj.id && !this.exists(this.polygon)) {
         this.savePolygon();
-      } else if (this.polygonClicks.includes(activeObj)) {
+      } else if (this.polygonClicks.includes(activeObj.id)) {
         //console.log(activeObj.get('type'));
         //this.adjustPolygonClick(e);
       } else {
@@ -622,12 +674,16 @@ export default {
       ]
       //console.log("coords", coords);
       return new fabric.Line(coords, {
+        id: this.getRandId(),
         fill: 'white',
         stroke: 'white',
         strokeWidth: 1,
         selectable: false,
+        hasControls: false,
         labelType: POLY_LINE_LABEL,
         score: 1.0,
+        //https://www.w3schools.com/cssref/playit.asp?filename=playcss_cursor&preval=context-menu
+        hoverCursor: 'default',
       });
     },
 
@@ -640,10 +696,12 @@ export default {
     },
 
     createBoxFromExtremeClicks: function() {
-      console.log('creating box from extreme clicks');
+      console.log('creating box from extreme clicks', this.extremeClicks);
       let r, click, xmin, ymin, xmax, ymax;
-      for (let i in this.extremeClicks) {
-        click = this.extremeClicks[i];
+      for (let i=0; i<this.extremeClicks.length; i++) {
+        console.log("ID", this.extremeClicks[i]);
+        click = this.getObjectById(this.extremeClicks[i]);
+        console.log(click);
         if (xmin === undefined || click.left < xmin) {
           xmin = click.left;
         }
@@ -656,7 +714,6 @@ export default {
         if (ymax === undefined || click.top > ymax) {
           ymax = click.top;
         }
-        console.log(this.extremeClicks[i]);
       }
       xmin += this.clickRadius;
       ymin += this.clickRadius;
@@ -664,14 +721,14 @@ export default {
       ymax += this.clickRadius;
       r = this.createRectFromCoords(xmin, ymin, xmax, ymax);
       canvas.setActiveObject(r);
+      this.resetExtremeClicks();
     },
 
     resetExtremeClicks: function() {
-      for (let i in this.extremeClicks) {
-        print(i);
-        canvas.remove(this.extremeClicks[i]);  
+      while (this.extremeClicks.length > 0){
+        this.removeObjectById(this.extremeClicks[0]);
+        this.extremeClicks.splice(0, 1);
       }
-      this.extremeClicks = [];
       this.extremeClickMode = false;
     },
 
@@ -680,15 +737,15 @@ export default {
     },
 
     deletePolygonClick: function(click) {
-      let idx = this.polygonClicks.indexOf(click);
+      let idx = this.polygonClicks.indexOf(click.id);
+      console.log("IDX", idx, this.polygonClicks.length);
       if (idx === this.polygonClicks.length-1) {
         canvas.remove(click.lineIn);
       } else if (idx === 0 && this.exists(click.lineOut)) {
         canvas.remove(click.lineOut);
       } else if (this.exists(click.lineIn) && this.exists(click.lineOut)) {
-        let priorClick = this.polygonClicks[idx-1];
-        let nextClick = this.polygonClicks[idx+1];
-        console.log(priorClick, click.lineOut.x2);
+        let priorClick = this.getObjectById(this.polygonClicks[idx-1]);
+        let nextClick = this.getObjectById(this.polygonClicks[idx+1]);
         priorClick.lineOut.set({
            'x2': click.lineOut.x2,
            'y2': click.lineOut.y2
@@ -701,11 +758,16 @@ export default {
         canvas.remove(click.lineIn);
         canvas.remove(click.lineOut);
       }
-      this.polygonClicks.splice(idx, 1);
       canvas.remove(click);
       if (idx > 0) {
-        canvas.setActiveObject(this.polygonClicks[idx-1]);
+        print("SETTING active idx " + idx);
+        let obj = this.getObjectById(this.polygonClicks[idx-1])
+        console.log("O", obj, this.polygonClicks[idx-1]);
+        canvas.setActiveObject(obj);
+        canvas.renderAll();
       }
+      this.polygonClicks.splice(idx, 1);
+      console.log("PCS", this.polygonClicks);
       if (this.exists(this.polygon)) {
         console.log("polygon exists");
         canvas.remove(this.polygon);
@@ -720,14 +782,16 @@ export default {
       }
       while (this.polygonClicks.length > 0) {
         let idx = this.polygonClicks.length - 1;
-        this.deletePolygonClick(this.polygonClicks[idx]);
+        let click = this.getObjectById(this.polygonClicks[idx])
+        this.deletePolygonClick(click);
       }
       this.polygonMode = false;
       this.polygon = null;
     },
 
     createRectFromCoords: function(xmin, ymin, xmax, ymax) {
-      rect = new LabeledRect({
+      let rect = new LabeledRect({
+        id: this.getRandId(),
         left: xmin,
         top: ymin,
         originX: 'left',
@@ -738,7 +802,6 @@ export default {
         fill: this.getColor(),
         selectable: true,
         label: this.getCurLabel(),
-        id: this.getRandId(),
         opacity: 0.3,
         visible: true,
         transparentCorners: true,
@@ -748,6 +811,7 @@ export default {
       });
       canvas.add(rect);
       canvas.bringToFront(rect)
+      canvas.renderAll();
       return rect;
     },
 
@@ -909,11 +973,17 @@ export default {
     adjustThreshold: function() {
       let self = this;
       const val = this.sliderValue;
+      let visible;
       if (canvas !== undefined) {
         canvas.forEachObject(function(o) {
           if (self.isLabelObject(o)) {
-            print(o);
-            o.visible = (o.score >= val);
+            print("WHATTTSUP", o);
+            if (o.score >= val) {
+              o.visible = true;
+            } else {
+              o.visible = false;
+            }
+            // o.visible = (o.score >= val);
           }
         })
         canvas.renderAll();
@@ -984,6 +1054,7 @@ export default {
           }
         } else if (this.polygonMode) {
           this.deletePolygonClick(obj);
+          return;
         } else {
           canvas.remove(obj);
         }
@@ -1033,7 +1104,6 @@ export default {
           o.set({cornerSize: parseFloat(size)});
         }
       })
-      // canvas.item(0)['cornerSize'] = parseFloat(size);
       canvas.renderAll();
     },
 
@@ -1042,6 +1112,8 @@ export default {
       isDrawing = true;
       this.drawMode = true;
       let self = this;
+      this.resetExtremeClicks();
+      this.resetPolygonMode();
       canvas.forEachObject(function(o) {
         if (self.isLabelObject(o)) {
           o.selectable = false;
@@ -1055,6 +1127,8 @@ export default {
       isDrawing = false;
       this.drawMode = false;
       let self = this;
+      this.resetExtremeClicks();
+      this.resetPolygonMode();
       canvas.forEachObject(function(o) {
         if (self.isLabelObject(o)) {
           console.log(o);
@@ -1073,6 +1147,7 @@ export default {
       this.extremeClickMode = true;
       this.extremeClicks = [];
       let self = this;
+      this.resetPolygonMode();
       canvas.forEachObject(function(o) {
         if (self.isLabelObject(o)) {
           o.selectable = false;
@@ -1086,6 +1161,7 @@ export default {
       this.polygonMode = true;
       this.polygonClicks = [];
       let self = this;
+      this.resetExtremeClicks();
       canvas.forEachObject(function(o) {
         if (self.isLabelObject(o)) {
           o.selectable = false;

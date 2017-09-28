@@ -18,9 +18,22 @@ Metrics = namedtuple('Metrics', 'accuracy loss counts')
 Counts = namedtuple('Counts', 'trn val tst unlabeled')
 ImageList = namedtuple('ImageList', 'images') 
 BoundingBox = namedtuple('BoundingBox', 'id label score xmin ymin xmax ymax')
-ObjDetectImage = namedtuple('ObjDetectImage', 'id project src bboxes') 
+ObjDetectImage = namedtuple('ObjDetectImage', 'id project src bboxes labels') 
 ObjDetectLabelOpts = namedtuple('ObjDetectLabelOpts', 'labels') 
 ColorLabel = namedtuple('ColorLabel', 'value color') 
+
+
+ColorLabelType = GraphQLObjectType(
+    name='ColorLabel',
+    fields= {
+        'value': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'color': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        )
+    }
+)
 
 
 BoundingBoxType = GraphQLObjectType(
@@ -91,7 +104,10 @@ ObjDetectImageType = GraphQLObjectType(
         ),
         'bboxes': GraphQLField(
             GraphQLList(BoundingBoxType)
-        )
+        ),
+        'labels': GraphQLField(
+            GraphQLList(ColorLabelType)
+        ),
     }
 )
 
@@ -175,19 +191,6 @@ ImageListType = GraphQLObjectType(
 )
 
 
-ColorLabelType = GraphQLObjectType(
-    name='ColorLabel',
-    fields= {
-        'value': GraphQLField(
-            GraphQLNonNull(GraphQLString),
-        ),
-        'color': GraphQLField(
-            GraphQLNonNull(GraphQLString),
-        )
-    }
-)
-
-
 ObjDetectLabelOptsType = GraphQLObjectType(
     name='ObjDetectLabelOpts',
     fields= {
@@ -243,13 +246,10 @@ def make_obj_detect_label_opt(label):
 
 def get_obj_detect_label_opts(project):
     labels = data.get_obj_detect_label_opts(project)
-    print("LBS", labels)
     opts = []
     for label in labels:
         opts.append(make_obj_detect_label_opt(label))
-    print("OPTS", opts)
-    return ObjDetectLabelOpts(
-        labels=opts)
+    return opts
 
 
 def get_obj_detect_img(id_, project):
@@ -299,7 +299,8 @@ def make_obj_detect_image(id_, project, img):
         id=id_,
         project=project,
         src=src,
-        bboxes=make_bounding_boxes(bbs)
+        bboxes=make_bounding_boxes(bbs),
+        labels=get_obj_detect_label_opts(project)
     )
 
 

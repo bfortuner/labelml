@@ -1,6 +1,27 @@
 {
+    "val": {
+        "1478020215691398311": {
+            "bboxes": []
+        }
+    },
+    "inputs_dir": "example_data/images",
     "file_ext": ".jpg",
-    "name": "example_data",
+    "tst": {},
+    "unlabeled": {
+        "1478020217690091318": null,
+        "1478020214191388441": null,
+        "1478020215192311942": null,
+        "1478020210691558747": null,
+        "1478020214697222108": null,
+        "1478020213196446056": null,
+        "1478020211190321969": null,
+        "1478020216196716027": null,
+        "1478020210190790169": null,
+        "1478020217196946967": null,
+        "1478020212689685926": null,
+        "1478020212192080435": null,
+        "1478020219199183180": null
+    },
     "label_names": [
         "biker",
         "car",
@@ -8,127 +29,136 @@
         "trafficlight",
         "truck"
     ],
-    "unlabeled": {
-        "1478020210691558747": null,
-        "1478020219199183180": null,
-        "1478020211190321969": null,
-        "1478020212192080435": null,
-        "1478020213196446056": null,
-        "1478020216196716027": null,
-        "1478020215192311942": null,
-        "1478020214191388441": null,
-        "1478020210190790169": null,
-        "1478020217196946967": null,
-        "1478020217690091318": null,
-        "1478020212689685926": null,
-        "1478020214697222108": null,
-        "1478020218191884276": null
-    },
-    "tst": {},
+    "metrics": {},
     "created": "09/25/2017 19:16:23",
     "trn": {
-        "1478020218693157396": {
+        "1478020218191884276": {
             "bboxes": [
                 {
-                    "xmin": 357,
-                    "id": "kxueye7w4v",
-                    "ymax": 444,
-                    "xmax": 562,
-                    "ymin": 318,
+                    "ymax": 582,
+                    "xmin": 1048,
+                    "ymin": 391,
+                    "xmax": 1337,
                     "score": 1.0,
-                    "label": "biker"
+                    "label": "biker",
+                    "id": "lhiggcf46o"
                 },
                 {
-                    "xmin": 716,
-                    "id": "7vmy6g19vy",
-                    "ymax": 467,
-                    "xmax": 986,
-                    "ymin": 311,
+                    "ymax": 862,
+                    "xmin": 983,
+                    "ymin": 686,
+                    "xmax": 1264,
                     "score": 1.0,
-                    "label": "biker"
+                    "label": "biker",
+                    "id": "0un6w61m8t"
                 },
                 {
-                    "xmin": 751,
-                    "id": "74fb8p2qq1",
-                    "ymax": 175,
-                    "xmax": 890,
-                    "ymin": 43,
+                    "ymax": 505,
+                    "xmin": 488,
+                    "ymin": 186,
+                    "xmax": 802,
                     "score": 1.0,
-                    "label": "biker"
+                    "label": "biker",
+                    "id": "11bfvhr88a"
                 }
             ]
         },
         "1478020211690815798": {
             "bboxes": [
                 {
-                    "xmin": 0,
-                    "id": "80BA26",
                     "ymax": 645,
-                    "xmax": 138,
+                    "xmin": 0,
                     "ymin": 573,
+                    "xmax": 138,
                     "score": 0.12879247963428497,
-                    "label": "car"
+                    "label": "car",
+                    "id": "80BA26"
                 },
                 {
-                    "xmin": 389,
-                    "id": "AA10FB",
                     "ymax": 728,
-                    "xmax": 733,
+                    "xmin": 389,
                     "ymin": 500,
+                    "xmax": 733,
                     "score": 0.999951958656311,
-                    "label": "car"
+                    "label": "car",
+                    "id": "AA10FB"
                 },
                 {
-                    "xmin": 688,
-                    "id": "84EC46",
                     "ymax": 675,
-                    "xmax": 814,
+                    "xmin": 688,
                     "ymin": 561,
+                    "xmax": 814,
                     "score": 0.5572941899299622,
-                    "label": "car"
+                    "label": "car",
+                    "id": "84EC46"
                 }
             ]
         },
-        "1478020216698323099": {
+        "1478020218693157396": {
             "bboxes": [
                 {
-                    "xmin": 0,
-                    "id": "E95066",
-                    "ymax": 689,
-                    "xmax": 154,
-                    "ymin": 519,
-                    "score": 0.9405048489570618,
-                    "label": "car"
-                },
-                {
-                    "xmin": 272,
-                    "id": "4F91F3",
-                    "ymax": 1080,
-                    "xmax": 1843,
-                    "ymin": 590,
-                    "score": 0.1465800702571869,
-                    "label": "car"
-                },
-                {
-                    "xmin": 524,
-                    "id": "d05dsdhufe",
-                    "ymax": 573,
-                    "xmax": 829,
-                    "ymin": 366,
+                    "ymax": 444,
+                    "xmin": 357,
+                    "ymin": 318,
+                    "xmax": 562,
                     "score": 1.0,
-                    "label": "biker"
+                    "label": "biker",
+                    "id": "kxueye7w4v"
+                },
+                {
+                    "ymax": 467,
+                    "xmin": 716,
+                    "ymin": 311,
+                    "xmax": 986,
+                    "score": 1.0,
+                    "label": "biker",
+                    "id": "7vmy6g19vy"
+                },
+                {
+                    "ymax": 175,
+                    "xmin": 751,
+                    "ymin": 43,
+                    "xmax": 890,
+                    "score": 1.0,
+                    "label": "biker",
+                    "id": "74fb8p2qq1"
                 }
             ]
         },
         "1478020219697324624": {
             "bboxes": []
+        },
+        "1478020216698323099": {
+            "bboxes": [
+                {
+                    "ymax": 689,
+                    "xmin": 0,
+                    "ymin": 519,
+                    "xmax": 154,
+                    "score": 0.9405048489570618,
+                    "label": "car",
+                    "id": "E95066"
+                },
+                {
+                    "ymax": 1080,
+                    "xmin": 272,
+                    "ymin": 590,
+                    "xmax": 1843,
+                    "score": 0.1465800702571869,
+                    "label": "car",
+                    "id": "4F91F3"
+                },
+                {
+                    "ymax": 573,
+                    "xmin": 524,
+                    "ymin": 366,
+                    "xmax": 829,
+                    "score": 1.0,
+                    "label": "biker",
+                    "id": "d05dsdhufe"
+                }
+            ]
         }
     },
-    "val": {
-        "1478020215691398311": {
-            "bboxes": []
-        }
-    },
-    "inputs_dir": "example_data/images",
-    "metrics": {}
+    "name": "example_data"
 }
