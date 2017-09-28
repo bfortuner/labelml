@@ -12,7 +12,7 @@ import data
 
 def create_app(**kwargs):
     app = Flask(__name__)
-    app.debug = True
+    CORS(app, supports_credentials=True, resources={r'/*': {'origins': '*'}})
     app.add_url_rule(
         '/graphql',
         view_func=GraphQLView.as_view('graphql', schema=Schema, **kwargs)
@@ -30,5 +30,4 @@ def image(project, filename):
 
 
 if __name__ == '__main__':
-    CORS(application, supports_credentials=True, resources={r'/*': {'origins': '*'}})
     application.run(host='0.0.0.0')

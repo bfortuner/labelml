@@ -14,7 +14,7 @@ if (process.env.NODE_ENV === 'development') {
   var ENDPOINT = 'http://labelml.wfcpkpjahu.us-west-1.elasticbeanstalk.com';
 }
 Vue.config.productionTip = false
-//var ENDPOINT = 'http://labelml.wfcpkpjahu.us-west-1.elasticbeanstalk.com'
+var ENDPOINT = 'http://labelml.wfcpkpjahu.us-west-1.elasticbeanstalk.com'
 //var HOST = '24.5.150.30'
 //var HOST = 'localhost'
 //var HOST = '10.0.0.21'
