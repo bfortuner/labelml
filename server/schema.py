@@ -1,7 +1,6 @@
 import os
 import random
 from collections import namedtuple, OrderedDict
-# import pandas as pd
 from graphql import (
     GraphQLField, GraphQLNonNull, GraphQLArgument,
     GraphQLObjectType, GraphQLList, GraphQLBoolean, GraphQLString,
@@ -17,10 +16,29 @@ Image = namedtuple('Image', 'id project src thumbnail thumbnailWidth thumbnailHe
 Metrics = namedtuple('Metrics', 'accuracy loss counts')
 Counts = namedtuple('Counts', 'trn val tst unlabeled')
 ImageList = namedtuple('ImageList', 'images') 
-BoundingBox = namedtuple('BoundingBox', 'id label score xmin ymin xmax ymax')
-ObjDetectImage = namedtuple('ObjDetectImage', 'id project src bboxes labels') 
+Point = namedtuple('Point', 'id x y')
+Annotation = namedtuple('Annotation', 'id label bbox polygon')
+BoundingBox = namedtuple('BoundingBox', 'id label score xmin ymin xmax ymax clicks')
+Polygon = namedtuple('Polygon', 'id annoId label score points')
+ObjDetectImage = namedtuple('ObjDetectImage', 'id project src annotations labels') 
 ObjDetectLabelOpts = namedtuple('ObjDetectLabelOpts', 'labels') 
 ColorLabel = namedtuple('ColorLabel', 'value color') 
+
+
+PointType = GraphQLObjectType(
+    name='Point',
+    fields= {
+        'id': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'x': GraphQLField(
+            GraphQLNonNull(GraphQLFloat),
+        ),
+        'y': GraphQLField(
+            GraphQLNonNull(GraphQLFloat),
+        )
+    }
+)
 
 
 ColorLabelType = GraphQLObjectType(
@@ -42,6 +60,9 @@ BoundingBoxType = GraphQLObjectType(
         'id': GraphQLField(
             GraphQLNonNull(GraphQLString),
         ),
+        'annoId': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
         'label': GraphQLField(
             GraphQLNonNull(GraphQLString),
         ),
@@ -59,14 +80,81 @@ BoundingBoxType = GraphQLObjectType(
         ),
         'ymax': GraphQLField(
             GraphQLNonNull(GraphQLInt),
-        )
+        ),
+        'clicks': GraphQLField(
+            GraphQLList(PointType),
+        ),
     }
 )
+
+
+PolygonType = GraphQLObjectType(
+    name='Polygon',
+    fields= {
+        'id': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'annoId': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),        
+        'label': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'score': GraphQLField(
+            GraphQLNonNull(GraphQLFloat),
+        ),
+        'points': GraphQLField(
+            GraphQLList(PointType),
+        ),
+    }
+)
+
+
+AnnotationType = GraphQLObjectType(
+    name='Annotation',
+    fields= {
+        'id': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'label': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'bbox': GraphQLField(
+            GraphQLList(BoundingBoxType)
+        ),
+        'polygon': GraphQLField(
+            GraphQLList(PolygonType)
+        ),
+    }
+)
+
+
+AnnotationInputType = GraphQLObjectType(
+    name='AnnotationInput',
+    fields= {
+        'id': GraphQLInputObjectField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'label': GraphQLInputObjectField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'bbox': GraphQLInputObjectField(
+            GraphQLList(BoundingBoxType)
+        ),
+        'polygon': GraphQLInputObjectField(
+            GraphQLList(PolygonType)
+        ),
+    }
+)
+
 
 BoundingBoxInputType = GraphQLInputObjectType(
     name='BoundingBoxInput',
     fields= {
         'id': GraphQLInputObjectField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'annoId': GraphQLInputObjectField(
             GraphQLNonNull(GraphQLString),
         ),
         'label': GraphQLInputObjectField(
@@ -86,9 +174,13 @@ BoundingBoxInputType = GraphQLInputObjectType(
         ),
         'ymax': GraphQLInputObjectField(
             GraphQLNonNull(GraphQLInt),
-        )
+        ),
+        'clicks': GraphQLInputObjectField(
+            GraphQLList(PointType),
+        ),
     }
 )
+
 
 ObjDetectImageType = GraphQLObjectType(
     name='ObjDetectImage',
@@ -102,8 +194,8 @@ ObjDetectImageType = GraphQLObjectType(
         'src': GraphQLField(
             GraphQLString
         ),
-        'bboxes': GraphQLField(
-            GraphQLList(BoundingBoxType)
+        'annotations': GraphQLField(
+            GraphQLList(AnnotationType)
         ),
         'labels': GraphQLField(
             GraphQLList(ColorLabelType)
@@ -257,39 +349,71 @@ def get_obj_detect_img(id_, project):
     return make_obj_detect_image(id_, project, img)
 
 
-def make_bounding_boxes(bbList):
-    bbs = []
-    for box in bbList:
-        bbs.append(
-            BoundingBox(
-                id=box["id"],
-                label=box["label"],
-                score=box["score"],
-                xmin=box["xmin"],
-                ymin=box["ymin"],
-                xmax=box["xmax"],
-                ymax=box["ymax"] 
-            )
-        )
-    return bbs
+def make_point(shape):
+    return Point(
+        id=shape['id'],
+        x=shape['x'],
+        y=shape['y']
+    )
 
 
-## TODO ##
-def make_polygons(bbList):
-    bbs = []
-    for box in bbList:
-        bbs.append(
-            BoundingBox(
-                id=box["id"],
-                label=box["label"],
-                score=box["score"],
-                xmin=box["xmin"],
-                ymin=box["ymin"],
-                xmax=box["xmax"],
-                ymax=box["ymax"] 
+def make_points(anno):
+    pts = []
+    points = anno['points']
+    for p in points:
+        pts.append(make_point(p))
+    return pts
+
+
+def make_annotations(annoList):
+    annos = []
+    for anno in annoList:
+        annos.append(
+            Annotation(
+                id=anno["id"],
+                label=anno["label"],
+                bb=make_bounding_box(anno['bbox']),
+                polygon=make_polygon(anno['polygon'])
             )
         )
-    return bbs
+    return annos
+
+
+def make_annotation(anno):
+    return Annotation(
+        id=anno["id"],
+        label=anno["label"],
+        bbox=make_bounding_box(anno),
+        polygon=make_polygon(anno)
+    )
+
+
+def make_bounding_box(box):
+    if box is None:
+        return None
+    return BoundingBox(
+        id=box["id"],
+        annoId=box['annoId'],
+        label=box["label"],
+        score=box["score"],
+        xmin=box["xmin"],
+        ymin=box["ymin"],
+        xmax=box["xmax"],
+        ymax=box["ymax"],
+        clicks=box["clicks"],
+    )
+
+
+def make_polygon(poly):
+    if poly is None:
+        return None
+    return Polygon(
+        id=poly["id"],
+        annoId=poly['annoId'],
+        label=poly["label"],
+        score=poly["score"],
+        points=poly['points'],
+    )
 
 
 def make_obj_detect_image(id_, project, img):
@@ -380,9 +504,9 @@ def save_image_data(fold, id_, tags, dset=None,
     data.update_counts(fold["name"])
 
 
-def save_obj_detect_image(id_, project, bbs, dset=None):
+def save_obj_detect_image(id_, project, annos, dset=None):
     dset = get_random_dset() if dset is None else dset
-    entry = data.make_obj_detect_entry(bbs)
+    entry = data.make_obj_detect_entry(annos)
     fold = data.load_fold(project)
     if id_ in fold[cfg.UNLABELED]:
         data.move_unlabeled_to_labeled(fold, dset, id_, entry)
@@ -497,10 +621,11 @@ MutationRootType = GraphQLObjectType(
             args={
                 'id': GraphQLArgument(GraphQLString),
                 'project': GraphQLArgument(GraphQLString),
-                'bboxes': GraphQLArgument(GraphQLList(BoundingBoxInputType))
+                'annotations': GraphQLArgument(GraphQLList(
+                    AnnotationInputType))
             },
             resolver=lambda root, args, *_: save_obj_detect_image(
-                args.get('id'), args.get('project'), args.get('bboxes'))
+                args.get('id'), args.get('project'), args.get('annotations'))
         ),
     }
 )

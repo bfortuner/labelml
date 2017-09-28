@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 import time
-import pandas as pd
 from collections import namedtuple, OrderedDict
 
 import utils.files
@@ -116,9 +115,9 @@ def get_obj_detect_label_opts(project):
     return labels
 
 
-def make_obj_detect_entry(bbs):
+def make_obj_detect_entry(annos):
     return {
-        'bboxes': bbs,
+        'annotations': annos,
     }
 
 
@@ -240,33 +239,33 @@ IMAGE1 = {
 
 # Pandas 
 
-def init_dataset_df(meta_fpath, input_dir):
-    fpaths, ids = utils.files.get_paths_to_files(input_dir, strip_ext=True)
-    data = []
-    for id_ in ids:
-        data.append([id_,'',''])
-    df = pd.DataFrame(data, columns=DEFAULT_COLS)
-    df = df.set_index('id')
-    save_metadata_df(df, meta_fpath)
-    return df
+# def init_dataset_df(meta_fpath, input_dir):
+#     fpaths, ids = utils.files.get_paths_to_files(input_dir, strip_ext=True)
+#     data = []
+#     for id_ in ids:
+#         data.append([id_,'',''])
+#     df = pd.DataFrame(data, columns=DEFAULT_COLS)
+#     df = df.set_index('id')
+#     save_metadata_df(df, meta_fpath)
+#     return df
 
-def save_metadata_df(df, fpath):
-    df.to_csv(fpath, index=True, columns=DEFAULT_COLS[1:])
-
-
-def get_row_by_id(df, id_):
-    if id_ in df.index:
-        return df.loc[id_]
-    return None
+# def save_metadata_df(df, fpath):
+#     df.to_csv(fpath, index=True, columns=DEFAULT_COLS[1:])
 
 
-def insert_or_append_df(df, id_, values):
-    df.loc[id_] = values
-    return df
+# def get_row_by_id(df, id_):
+#     if id_ in df.index:
+#         return df.loc[id_]
+#     return None
 
 
-def load_metadata_df(fpath):
-    df = pd.read_csv(fpath, header=0, 
-                     names=DEFAULT_COLS, index_col=DEFAULT_COLS[0])
-    df = df.fillna(value='')
-    return df
+# def insert_or_append_df(df, id_, values):
+#     df.loc[id_] = values
+#     return df
+
+
+# def load_metadata_df(fpath):
+#     df = pd.read_csv(fpath, header=0, 
+#                      names=DEFAULT_COLS, index_col=DEFAULT_COLS[0])
+#     df = df.fillna(value='')
+#     return df
