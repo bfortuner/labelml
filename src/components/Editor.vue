@@ -13,14 +13,14 @@
         {{ label.value }}
       </option>
     </select>
-    <range-slider
+    <vue-slider
       class="slider"
-      min="0"
-      max="1"
-      step=".05"
+      min=0
+      max=1
+      interval=.05
       v-model="sliderValue"
       v-on="adjustThreshold()">
-    </range-slider>
+    </vue-slider>
     <canvas id="c"></canvas>
   </div>
 </template>
@@ -28,12 +28,25 @@
 <script>
 import {fabric} from 'fabric'
 import RangeSlider from 'vue-range-slider'
+import vueSlider from 'vue-slider-component'
 import 'vue-range-slider/dist/vue-range-slider.css'
 import { OBJ_DETECT_IMG_QUERY } from '../constants/graphql'
 import { OBJ_DETECT_LABEL_OPT_QUERY } from '../constants/graphql'
 import { SAVE_OBJ_DETECT_IMAGE } from '../constants/graphql'
 import { NEXT_OBJ_DETECT_IMG_QUERY } from '../constants/graphql'
 
+const BOX_LABEL = 'box';
+const EC_LABEL = 'extremeClick';
+const POLY_CLICK_LABEL = 'polygonClick';
+const POLYGON_LABEL = 'polygon';
+const POLY_LINE_LABEL = 'polygonLine';
+const LABEL_TYPES = [
+  BOX_LABEL,
+  EC_LABEL,
+  POLYGON_LABEL,
+  POLY_CLICK_LABEL,
+  POLY_LINE_LABEL,
+]
 
 window.onkeydown = onKeyDownHandler;
 
@@ -156,7 +169,7 @@ export default {
   name: 'editor',
   components: { 
     fabric,
-    RangeSlider
+    vueSlider
   },
   props: ['project'],
   
@@ -180,6 +193,9 @@ export default {
       extremeClickRadius: 4,
       polyClickRadius: 3,
       polygonClicks: [],
+      sliderMin: 0.0,
+      sliderMax: 1.0,
+      sliderInterval: 0.5,
     }
   },
   
@@ -391,6 +407,7 @@ export default {
         visible: true,
         transparentCorners: true,
         cornerSize: this.cornerSize,
+        labelType: BOX_LABEL,
       });
       canvas.add(rect);  
     },
@@ -422,6 +439,9 @@ export default {
         fill: 'blue', 
         left: this.getXCoordFromClick(pointer, this.extremeClickRadius),
         top: this.getYCoordFromClick(pointer, this.extremeClickRadius),
+        visible: true,
+        score: 1.0,
+        labelType: EC_LABEL,
       });
       //console.log(pointer.x, pointer.y, circle.left, circle.top);
       canvas.add(circle);
@@ -448,6 +468,7 @@ export default {
           selectable: true,
           borderColor: 'white',
           padding: 2,
+          labelType: POLY_CLICK_LABEL,
         });
 
       if (this.polygonClicks.length === 0) {
@@ -500,7 +521,9 @@ export default {
         // lockMovementY: true,
         cornerStyle: 'circle',
         cornerColor: 'white',
-        cornerSize: 3
+        cornerSize: 3,
+        labelType: POLYGON_LABEL,
+        score: 1.0,
       });
       return polygon;
     },
@@ -602,7 +625,9 @@ export default {
         fill: 'white',
         stroke: 'white',
         strokeWidth: 1,
-        selectable: false
+        selectable: false,
+        labelType: POLY_LINE_LABEL,
+        score: 1.0,
       });
     },
 
@@ -638,7 +663,6 @@ export default {
       xmax += this.clickRadius;
       ymax += this.clickRadius;
       r = this.createRectFromCoords(xmin, ymin, xmax, ymax);
-      this.setSelectMode();
       canvas.setActiveObject(r);
     },
 
@@ -702,11 +726,6 @@ export default {
       this.polygon = null;
     },
 
-    resetAllModes: function() {
-      this.resetPolygonMode();
-      this.resetExtremeClicks();
-    },
-
     createRectFromCoords: function(xmin, ymin, xmax, ymax) {
       rect = new LabeledRect({
         left: xmin,
@@ -724,7 +743,8 @@ export default {
         visible: true,
         transparentCorners: true,
         cornerSize: this.cornerSize,
-        score: 1.0
+        score: 1.0,
+        labelType: BOX_LABEL
       });
       canvas.add(rect);
       canvas.bringToFront(rect)
@@ -751,7 +771,7 @@ export default {
         return;
       }
       if (this.extremeClickMode) {
-        this.handleExtremeClickMove(e);
+        //this.handleExtremeClickMove(e);
       // } else if (this.polygonMode) {
       //   this.movePolygonClick(e);
       } else if (this.drawMode || isDrawing) {
@@ -804,6 +824,7 @@ export default {
           score: shape.score,
           transparentCorners: true,
           cornerSize: self.cornerSize,
+          labelType: BOX_LABEL,
         });
         canvas.add(rect);
       }
@@ -881,45 +902,27 @@ export default {
       })
     },
 
-    setDrawMode: function () {
-      this.deselectObject();
-      this.resetAllModes();
-      isDrawing = true;
-      this.drawMode = true;
-      canvas.forEachObject(function(o) {
-        o.selectable = false;
-      }).selection = false;
-      canvas.renderAll();
-    },
-
-    setSelectMode: function() {
-      isDrawing = false;
-      this.drawMode = false;
-      this.resetAllModes();
-      canvas.forEachObject(function(o) {
-        o.set({selectable: true}).setCoords();
-      }).selection = true;
-      let obj = canvas.getActiveObject();
-      if (obj === undefined || obj === null) {
-        this.setDefaultObject();
-      }
-    },
-
     getBoxScore: function(id) {
       let box = null;
     },
 
     adjustThreshold: function() {
+      let self = this;
+      const val = this.sliderValue;
       if (canvas !== undefined) {
-        let objs = canvas.getObjects();
-        for (let i in objs) {
-          objs[i].visible = (objs[i].score >= this.sliderValue);
-        }
-        // canvas.forEachObject(function(o) {
-        //   o.visible = (o.score >= self.sliderValue);
-        // })
+        canvas.forEachObject(function(o) {
+          if (self.isLabelObject(o)) {
+            print(o);
+            o.visible = (o.score >= val);
+          }
+        })
         canvas.renderAll();
       }
+    },
+
+    isLabelObject: function(obj) {
+      return (obj.labelType !== undefined 
+              && LABEL_TYPES.indexOf(obj.labelType) !== -1);
     },
 
     navigateNextBox: function(direction) {
@@ -929,7 +932,7 @@ export default {
       canvas.discardActiveObject();
       let boxes = [];
       canvas.forEachObject(function(o) {
-        if (o.score >= self.sliderValue) {
+        if (self.isLabelObject(o) && o.score >= self.sliderValue) {
           boxes.push(o);
         }
       })
@@ -977,13 +980,10 @@ export default {
           if (obj._objects.length > 0) {
             for (let i in obj._objects) {
               canvas.remove(obj._objects[i]);
-              canvas.remove(obj._objects[i].lineIn);
-              canvas.remove(obj._objects[i].lineOut);
-            }
+             }
           }
         } else if (this.polygonMode) {
           this.deletePolygonClick(obj);
-          canvas.remove(obj);
         } else {
           canvas.remove(obj);
         }
@@ -998,11 +998,13 @@ export default {
         console.log("LEN", boxes.length);
         this.sortBoxesByProp(boxes, 'left');
         for (let i in boxes) {
-          console.log("box", boxes[i].score, this.sliderValue);
-          if (boxes[i].score >= this.sliderValue) {
-            print("FOUND BOX")
-            canvas.setActiveObject(boxes[i]);
-            break;
+          if (this.isLabelObject(boxes[i])) {
+            console.log("box", boxes[i].score, this.sliderValue);
+            if (boxes[i].score >= this.sliderValue) {
+              print("FOUND BOX")
+              canvas.setActiveObject(boxes[i]);
+              break;
+            }
           }
         }
         canvas.renderAll();
@@ -1025,32 +1027,71 @@ export default {
     },
 
     setCornerSize: function(size) {
+      let self = this;
       canvas.forEachObject(function(o) {
-        o.set({cornerSize: parseFloat(size)});
+        if (self.isLabelObject(o)) {
+          o.set({cornerSize: parseFloat(size)});
+        }
       })
       // canvas.item(0)['cornerSize'] = parseFloat(size);
+      canvas.renderAll();
+    },
+
+    setDrawMode: function () {
+      this.deselectObject();
+      isDrawing = true;
+      this.drawMode = true;
+      let self = this;
+      canvas.forEachObject(function(o) {
+        if (self.isLabelObject(o)) {
+          o.selectable = false;
+        }
+      }).selection = false;
+      canvas.renderAll();
+    },
+
+    setSelectMode: function() {
+      console.log("ALL Objs", canvas.getObjects());
+      isDrawing = false;
+      this.drawMode = false;
+      let self = this;
+      canvas.forEachObject(function(o) {
+        if (self.isLabelObject(o)) {
+          console.log(o);
+          o.set({selectable: true}).setCoords();
+        }
+      }).selection = true;
+      let obj = canvas.getActiveObject();
+      if (obj === undefined || obj === null) {
+        this.setDefaultObject();
+      }
       canvas.renderAll();
     },
     
     setExtremeClickMode: function() {
       this.deselectObject();
-      this.resetAllModes();
       this.extremeClickMode = true;
       this.extremeClicks = [];
-      // console.log("Entering extreme click mode");
+      let self = this;
+      canvas.forEachObject(function(o) {
+        if (self.isLabelObject(o)) {
+          o.selectable = false;
+        }
+      }).selection = false;
+      canvas.renderAll();
     },
 
     setPolygonMode: function() {
       this.deselectObject();
-      this.resetAllModes();
       this.polygonMode = true;
       this.polygonClicks = [];
+      let self = this;
       canvas.forEachObject(function(o) {
-        o.selectable = false;
+        if (self.isLabelObject(o)) {
+          o.selectable = false;
+        }
       }).selection = false;
-      // this.polygon = new fabric.Path('M 0 0 L 300 100 L 200 300 z');
-      // this.polygon.set({ fill: 'red', stroke: 'green', opacity: 0.5 });
-      // canvas.add(this.polygon);
+      canvas.renderAll();
     },
 
     toggleUnselectedVisibility: function(updateToggle) {
