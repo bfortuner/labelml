@@ -132,6 +132,9 @@ function onKeyDownHandler(e) {
     e.preventDefault();
     e.stopImmediatePropagation();
     obj.set({top: obj.top += 5});
+  } else if (e.keyCode == 9) { // tab
+      e.preventDefault();
+      e.stopImmediatePropagation();
   }
   canvas.renderAll();
   return;
@@ -218,27 +221,12 @@ export default {
       result({ data, loader, networkStatus }) {
         this.image = data.nextObjDetectImage;
         this.labels = data.nextObjDetectImage.labels;
-        console.log("LBS", this.labels);
         this.colors = this.makeColors(this.labels);
         this.selectedLabel = this.labels[0].value;
         this.initializeCanvas();
-        this.loadBBs();
+        this.loadAnnotations();
       },
     },
-    // objDetectLabelOpts: {
-    //   query: OBJ_DETECT_LABEL_OPT_QUERY,
-    //   variables () {
-    //     return {
-    //       project: this.project 
-    //     }
-    //   },
-    //   result({ data, loader, networkStatus }) {
-    //     this.labels = data.objDetectLabelOpts.labels;
-    //     this.colors = this.makeColors(data.objDetectLabelOpts.labels);
-    //     this.selectedLabel = data.objDetectLabelOpts.labels[0].value;
-    //     this.loadBBs();
-    //   },
-    //}   
   },
   
   computed: {
@@ -393,7 +381,6 @@ export default {
       } else if (isDrawing) {
         this.initRectangle(e);
       } else {
-        print("HEY");
         return;
       }
     },
@@ -405,6 +392,8 @@ export default {
       origY = pointer.y;
       var pointer = canvas.getPointer(e.e);
       rect = new LabeledRect({
+        id: this.getRandId(),
+        annoId: this.getRandId(),
         left: origX,
         top: origY,
         originX: 'left',
@@ -416,30 +405,14 @@ export default {
         transparentCorners: false,
         selectable: true,
         label: this.getCurLabel(),
-        id: this.getRandId(),
         opacity: 0.3,
         visible: true,
         transparentCorners: true,
         cornerSize: this.cornerSize,
         labelType: BOX_LABEL,
+        points: []
       });
       canvas.add(rect);  
-    },
-
-    createRectangle: function() {
-      let circle = new fabric.Circle({
-        id: this.getRandId(),
-        radius: this.extremeClickRadius, 
-        fill: 'blue', 
-        left: 100, //this.getXCoordFromClick(pointer, this.extremeClickRadius),
-        top: 100, //this.getYCoordFromClick(pointer, this.extremeClickRadius),
-        visible: true,
-        score: 1.0,
-        labelType: EC_LABEL,
-      });
-      canvas.add(circle);
-      canvas.renderAll();
-      this.rects.push(circle.id);
     },
 
     getObjectById: function(id) {
@@ -448,7 +421,7 @@ export default {
         console.log(objs[i]);
         if (objs[i] !== undefined && objs[i] !== null && objs[i].id === id) {
           return objs[i];
-        }        
+        }
       }
     },
 
@@ -548,6 +521,14 @@ export default {
       canvas.renderAll();
     },
 
+    makePointsFromCoords: function(coords) {
+      let self = this;
+      coords.map(function(o) {
+        o.id = self.getRandId();
+      });
+      return coords;
+    },
+
     makePolygon: function() {
       console.log("Saving active polygon");
       let coords = [];
@@ -562,6 +543,8 @@ export default {
       console.log(coords);
       let polygon = new fabric.Polygon(coords, {
         id: this.getRandId(),
+        annoId: this.getRandId(),
+        label: this.getCurLabel(),
         fill: this.getColor(),
         selectable: false,
         objectCaching: false,
@@ -569,13 +552,12 @@ export default {
         hasControls: false,
         hasBorders: true,
         borderColor: 'white',
-        // lockMovementX: true,
-        // lockMovementY: true,
         cornerStyle: 'circle',
         cornerColor: 'white',
         cornerSize: 3,
         labelType: POLYGON_LABEL,
         score: 1.0,
+        points: this.makePointsFromCoords(coords),
       });
       return polygon;
     },
@@ -695,12 +677,22 @@ export default {
       return pointer.y - radius;
     },
 
+    makePoint: function(click) {
+      return {
+        'id': click.id,
+        'x': click.left += click.radius,
+        'y': click.top += click.radius,
+      }
+    },
+
     createBoxFromExtremeClicks: function() {
       console.log('creating box from extreme clicks', this.extremeClicks);
       let r, click, xmin, ymin, xmax, ymax;
+      let points = [];
       for (let i=0; i<this.extremeClicks.length; i++) {
         console.log("ID", this.extremeClicks[i]);
         click = this.getObjectById(this.extremeClicks[i]);
+        points.push(this.makePoint(click));
         console.log(click);
         if (xmin === undefined || click.left < xmin) {
           xmin = click.left;
@@ -720,6 +712,7 @@ export default {
       xmax += this.clickRadius;
       ymax += this.clickRadius;
       r = this.createRectFromCoords(xmin, ymin, xmax, ymax);
+      r.points = points;
       canvas.setActiveObject(r);
       this.resetExtremeClicks();
     },
@@ -792,6 +785,7 @@ export default {
     createRectFromCoords: function(xmin, ymin, xmax, ymax) {
       let rect = new LabeledRect({
         id: this.getRandId(),
+        annoId: this.getRandId(),
         left: xmin,
         top: ymin,
         originX: 'left',
@@ -866,32 +860,47 @@ export default {
       });
     },
 
-    loadBBs: function() {
-      let shapes = this.image.bboxes;
-      let self = this;
-      for (let shape of shapes) {
-        rect = new LabeledRect({
-          left: shape.xmin,
-          top: shape.ymin,            
-          originX: 'left',
-          originY: 'top',
-          width: shape.xmax - shape.xmin,
-          height: shape.ymax - shape.ymin,
-          angle: 0,
-          fill: self.colors[shape.label],
-          transparentCorners: false,
-          selectable: false,
-          label: shape.label,
-          id: shape.id,
-          opacity: 0.3,
-          visible: shape.score >= this.sliderValue,
-          score: shape.score,
-          transparentCorners: true,
-          cornerSize: self.cornerSize,
-          labelType: BOX_LABEL,
-        });
-        canvas.add(rect);
+    loadBB: function(bbox) {
+      let rect = new LabeledRect({
+        id: bbox.id,
+        annoId: bbox.annoId,
+        left: bbox.xmin,
+        top: bbox.ymin,            
+        originX: 'left',
+        originY: 'top',
+        width: bbox.xmax - bbox.xmin,
+        height: bbox.ymax - bbox.ymin,
+        angle: 0,
+        fill: this.colors[bbox.label],
+        transparentCorners: false,
+        selectable: false,
+        label: bbox.label,
+        opacity: 0.3,
+        visible: bbox.score >= this.sliderValue,
+        score: bbox.score,
+        transparentCorners: true,
+        cornerSize: this.cornerSize,
+        labelType: BOX_LABEL,
+        points: bbox.points,
+      });
+      canvas.add(rect);
+    },
+
+    loadPolygon: function(poly) {
+      return;
+    },
+
+    loadAnnotations: function() {
+      let annos = this.image.annotations;
+      for (let anno of annos) {
+        if (this.exists(anno.bbox)) {
+          this.loadBB(anno.bbox)
+        }
+        if (this.exists(anno.polygon)) {
+          this.loadPolygon(anno.polygon)
+        }
       }
+      canvas.renderAll();
     },
 
     getColor: function () {
@@ -923,28 +932,86 @@ export default {
       let bb = {}
       let coords = rect.get('aCoords');
       bb.id = rect.get('id');
+      bb.annoId = rect.get('annoId');
       bb.label = rect.get('label');
       bb.score = rect.get('score');
       bb.xmin = coords['tl']['x'],
       bb.ymin = coords['tl']['y'],
       bb.xmax = coords['tr']['x'],
-      bb.ymax = coords['br']['y']
+      bb.ymax = coords['br']['y'],
+      bb.points = rect.get('points');
       return bb
     },
 
-    extractBBs: function () {
-      let bbs = [];
+    extractPolygon: function (obj) {
+      let poly = {}
+      poly.id = obj.get('id');
+      poly.annoId = obj.get('annoId');
+      poly.label = obj.get('label');
+      poly.score = obj.get('score');
+      poly.points = obj.get('points');
+      return poly
+    },
+
+    getUniqueAnnotationIds: function() {
+      let annoIds = new Set();
       let self = this;
-      let bb, width, height;
-      canvas.getObjects().map(function(e) {
-        bb = self.extractBB(e);
-        width = bb.xmax - bb.xmin;
-        height = bb.ymax - bb.ymin;
-        if (width !== 0 && height !== 0 && bb.score >= self.sliderValue) {
-            bbs.push(bb);
+      canvas.forEachObject(function(o) {
+        if (self.isLabelObject(o)) {
+          annoIds.add(o.annoId);
+        }
+      })
+      return annoIds;
+    },
+
+    extractAnnotations: function () {
+      let annos = [];
+      let self = this;
+      let annoIdsSet = this.getUniqueAnnotationIds();
+      annoIdsSet.forEach(function(id) {
+        let anno = self.extractAnnotation(id);
+        if (self.exists(anno.bbox) || self.exists(anno.polygon)) {
+          annos.push(anno);
         }
       });
-      return bbs;    
+      return annos;
+    },
+
+    getObjectsByAnnoId: function (annoId) {
+      let objs = [];
+      let self = this;
+      canvas.forEachObject(function(o) {
+        console.log("O", o.annoId, o.labelType, annoId);
+        if (self.isLabelObject(o) && o.annoId === annoId) {
+          objs.push(o);
+        }
+      })
+      console.log("OOO", objs);
+      return objs;
+    },
+
+    extractAnnotation: function(id) {
+      let objs = this.getObjectsByAnnoId(id);
+      let anno = {
+        'id': id,
+        'label': objs[0].label,
+      }
+      for (let o of objs) {
+        if (o.labelType === BOX_LABEL) {
+          let bb = this.extractBB(o);
+          let width = bb.xmax - bb.xmin;
+          let height = bb.ymax - bb.ymin;
+          if (width !== 0 && height !== 0 && bb.score >= this.sliderValue) {
+            anno['bbox'] = bb;
+          }
+        } else if (o.labelType === POLYGON_LABEL) {
+          let poly = this.extractPolygon(o);
+          if (poly.points.length > 2 && poly.score >= this.sliderValue) {
+            anno['polygon'] = poly;
+          }
+        }
+      }
+      return anno;
     },
 
     getNextImg: function () {
@@ -952,14 +1019,14 @@ export default {
     },
 
     save: function () {
-      let bbs = this.extractBBs();
-      console.log("Saving bbs", bbs);
+      let annos = this.extractAnnotations();
+      console.log("Saving annos", annos);
       this.$apollo.mutate({
         mutation: SAVE_OBJ_DETECT_IMAGE,
         variables: {
           id: this.image.id,
           project: this.project,
-          bboxes: bbs
+          annotations: annos
         }
       }).then((data) => {
         this.$apollo.queries.nextObjDetectImage.refetch();
@@ -1066,13 +1133,10 @@ export default {
     setDefaultObject: function() {
       if (canvas !== undefined) {
         let boxes = canvas.getObjects();
-        console.log("LEN", boxes.length);
         this.sortBoxesByProp(boxes, 'left');
         for (let i in boxes) {
           if (this.isLabelObject(boxes[i])) {
-            console.log("box", boxes[i].score, this.sliderValue);
             if (boxes[i].score >= this.sliderValue) {
-              print("FOUND BOX")
               canvas.setActiveObject(boxes[i]);
               break;
             }

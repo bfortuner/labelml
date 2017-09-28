@@ -3,7 +3,7 @@ import gql from 'graphql-tag'
 
 export const SAVE_OBJ_DETECT_IMAGE = gql`
 mutation SaveObjDetectImage($id: String!, $project: String!, 
-                            $bboxes: [AnnotationInput]) {
+                            $annotations: [AnnotationInput]) {
     saveObjDetectImage(id: $id, project: $project, 
                        annotations: $annotations) {
         id
