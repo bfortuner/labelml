@@ -8,7 +8,6 @@ import json
 from contextlib import closing
 from zipfile import ZipFile, ZIP_DEFLATED
 import re
-import bcolz
 
 
 
@@ -102,13 +101,13 @@ def load_obj(fpath):
     return pickle.load(open(fpath, 'rb'))
 
 
-def save_bcolz_array(fpath, arr):
-    c=bcolz.carray(arr, rootdir=fpath, mode='w')
-    c.flush()
+# def save_bcolz_array(fpath, arr):
+#     c=bcolz.carray(arr, rootdir=fpath, mode='w')
+#     c.flush()
 
 
-def load_bcolz_array(fpath):
-    return bcolz.open(fpath)[:]
+# def load_bcolz_array(fpath):
+#     return bcolz.open(fpath)[:]
 
 
 def compress_file(fpath):
