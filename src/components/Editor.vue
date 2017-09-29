@@ -1,5 +1,6 @@
 <template>
   <div class="editor">
+    <router-link to="/" tag="button">Home</router-link>
     <button @click="getNextImg()">Next</button>
     <button @click="save()">Save</button>
     <button @click="deleteObject()">Delete</button>
@@ -37,6 +38,11 @@
 import {fabric} from 'fabric'
 import RangeSlider from 'vue-range-slider'
 
+import keys from '../constants/keyboard.js';
+console.log(keys);
+console.log(keys.KEY_MAP);
+console.log(keys.KEYS);
+
 import 'vue-range-slider/dist/vue-range-slider.css'
 import { OBJ_DETECT_IMG_QUERY } from '../constants/graphql'
 import { OBJ_DETECT_LABEL_OPT_QUERY } from '../constants/graphql'
@@ -59,81 +65,52 @@ const LABEL_TYPES = [
 window.onkeydown = onKeyDownHandler;
 
 function onKeyDownHandler(e) {
-  // print(e);
+  let moveKeys = ['up','down','right','left'];
+  let code = e.keyCode;
+  let keyObj = keys.KEY_MAP[code];
+  let key;
+  if (keyObj === null || keyObj === undefined) {
+    key = null;
+  } else {
+    key = keyObj.key;
+  }
   let obj = canvas.getActiveObject();
-
+  e.preventDefault();
+  e.stopImmediatePropagation()
+  
   // Shrink box
-  if (e.keyCode === 37 && e.shiftKey && e.altKey) {
-    // print("shrink left");
-    e.preventDefault();
-    e.stopImmediatePropagation()
+  if (key === 'left' && e.shiftKey && e.altKey) {
     obj.set({width: obj.width -= 5});
-  } else if (e.keyCode === 39 && e.shiftKey && e.altKey) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    // print("shrink right");
-    obj.set({width: obj.width -= 5})//.setCoords();
+  } else if (key === 'right' && e.shiftKey && e.altKey) {
+    obj.set({width: obj.width -= 5})
     obj.set({left: obj.left += 5});
-  } else if (e.keyCode === 38 && e.shiftKey && e.altKey) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    // print("shrink top");
+  } else if (key === 'up' && e.shiftKey && e.altKey) {
     obj.set({height: obj.height -= 5});
-  } else if (e.keyCode === 40 && e.shiftKey && e.altKey) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    // print("shrink bottom");
+  } else if (key === 'down' && e.shiftKey && e.altKey) {
     obj.set({height: obj.height -= 5})
     obj.set({top: obj.top += 5});
 
   // Stretch box
-  } else if (e.keyCode === 37 && e.shiftKey) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    // print("stretch left");
-    obj.set({width: obj.width += 5})//.setCoords();
+  } else if (key === 'left' && e.shiftKey) {
+    obj.set({width: obj.width += 5})
     obj.set({left: obj.left -= 5});
-  } else if (e.keyCode === 39 && e.shiftKey) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    // print("stretch right");
+  } else if (key === 'right' && e.shiftKey) {
     obj.set({width: obj.width += 5});
-  } else if (e.keyCode === 38 && e.shiftKey) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    // print("stretch top");
+  } else if (key === 'up' && e.shiftKey) {
     obj.set({height: obj.height += 5})
     obj.set({top: obj.top -= 5});
-  } else if (e.keyCode === 40 && e.shiftKey) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    // print("stretch bottom");
+  } else if (key === 'down' && e.shiftKey) {
     obj.set({height: obj.height += 5});
-
-  // Move box
-  } else if (e.keyCode === 37) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    // print("move LEFT");
+  
+  // Move Box
+  } else if (key === 'left') {
     obj.set({left: obj.left -= 5});
-  } else if (e.keyCode === 39) {
-    // print("move RIGHT");
-    e.preventDefault();
-    e.stopImmediatePropagation();
+  } else if (key === 'right') {
     obj.set({left: obj.left += 5});
-  } else if (e.keyCode === 38) {
-    // print("move UP");
-    e.preventDefault();
-    e.stopImmediatePropagation();
+  } else if (key === 'up') {
     obj.set({top: obj.top -= 5});
-  } else if (e.keyCode === 40) {
-    // print("move DOWN");
-    e.preventDefault();
-    e.stopImmediatePropagation();
+  } else if (key === 'down') {
     obj.set({top: obj.top += 5});
-  } else if (e.keyCode == 9) { // tab
-      e.preventDefault();
-      e.stopImmediatePropagation();
   }
   canvas.renderAll();
   return;
@@ -243,49 +220,39 @@ export default {
   created: function () {
     let self = this;
     window.addEventListener('keyup', function(e) {
-      console.log(e.keyCode);
-      if (e.keyCode == 83 && e.ctrlKey) { // ctrl + s
+      let moveKeys = ['up','down','right','left'];
+      let code = e.keyCode;
+      let keyObj = keys.KEY_MAP[code];
+      let key;
+      if (!self.exists(keyObj)) {
+        key = null;
+      } else {
+        key = keyObj.key;
+      }
+      
+      if (key === 's' && e.ctrlKey) {
         self.save();
-      } else if (e.keyCode == 90) { // z
+      } else if (key === 'z') {
         self.setZoomMode();
-      } else if (e.keyCode == 67) { // c
+      } else if (key === 'c') {
         self.setExtremeClickMode();
-      } else if (e.keyCode == 80) { // p <<<
+      } else if (key === 'p') {
         self.setPolygonMode();
-      } else if (e.keyCode == 78) { // n
+      } else if (key === 'n') {
         self.getNextImg();
-      } else if (e.keyCode == 83) { // s
+      } else if (key === 's') {
         self.setSelectMode();
-      } else if (e.keyCode == 68) { // d
-        e.preventDefault();
-        e.stopImmediatePropagation();
+      } else if (key === 'd') {
         self.setDrawMode();
-      } else if (e.keyCode == 72) { // h
-        e.preventDefault();
-        e.stopImmediatePropagation();
+      } else if (key === 'h') {
         self.toggleUnselectedVisibility(true);
-      // Shift 9 but giving bugs
-      } else if (e.keyCode == 9 && e.shiftKey) { // tab
-        e.preventDefault();
-        e.stopImmediatePropagation();
+      } else if (key === 'tab' && e.shiftKey) {
         self.navigateNextBox('left');
-      } else if (e.keyCode == 9) { // tab
-        e.preventDefault();
-        e.stopImmediatePropagation();
+      } else if (key === 'tab') {
         self.navigateNextBox('right');
-      } else if (e.keyCode == 65 && e.ctrlKey) { // a
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        self.navigateNextBox('left');
-      } else if (e.keyCode == 69 && e.ctrlKey) { // e
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        self.navigateNextBox('right');
-      } else if (e.keyCode === 27) { // ESC
-        e.preventDefault();
-        e.stopImmediatePropagation();
+      } else if (key === 'esc') {
         self.deselectObject();
-      } else if (e.keyCode === 46 || e.keyCode === 8) {
+      } else if (key === 'delete' || key === 'backspace') {
         self.deleteObject();
       }
     });
@@ -1191,7 +1158,7 @@ export default {
           canvas.remove(obj);
         }
         canvas.renderAll();
-        this.setDefaultObject();
+        this.setSelectMode();
       }
     },
 
