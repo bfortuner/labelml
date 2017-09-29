@@ -551,7 +551,8 @@ def save_obj_detect_image(id_, project, annos, dset=None):
             if id_ in fold[dset]:
                 fold[dset][id_] = entry
                 break
-    data.save_fold(fold)
+    ## NOT SAVING FOR DEMO !!!!!! ##
+    # data.save_fold(fold)
     # data.update_counts(fold["name"])
 
 

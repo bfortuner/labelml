@@ -173,8 +173,7 @@ var LabeledRect = fabric.util.createClass(fabric.Rect, {
 
 
 var canvas;
-var rect, isDown, origX, origY;
-var isDrawing = true;
+var drawRect, origX, origY;
 
 export default {
   name: 'editor',
@@ -190,7 +189,10 @@ export default {
       image: {},
       selectedLabel: '',
       sliderValue: 1.0,
-      clickRadius: 3.5,
+      clickRadius: 4,
+      cornerSize: 7,
+      extremeClickRadius: 4,
+      polyClickRadius: 4,
       hideUnselected: false,
       selectMode: true,
       drawMode: false,
@@ -199,13 +201,15 @@ export default {
       polygonMode: false,
       polygonX: [],
       polygonY: [],
-      cornerSize: 8,
-      extremeClickRadius: 4,
-      polyClickRadius: 3,
       polygonClicks: [],
       labels: [],
       colors: {},
-      rects: []
+      rects: [],
+      zoomFactor: 1,
+      grabMode: false,
+      zoomMode: false,
+      maxZoom: 10,
+      minZoom: .25,
     }
   },
   
@@ -239,8 +243,11 @@ export default {
   created: function () {
     let self = this;
     window.addEventListener('keyup', function(e) {
+      console.log(e.keyCode);
       if (e.keyCode == 83 && e.ctrlKey) { // ctrl + s
         self.save();
+      } else if (e.keyCode == 90) { // z
+        self.setZoomMode();
       } else if (e.keyCode == 67) { // c
         self.setExtremeClickMode();
       } else if (e.keyCode == 80) { // p <<<
@@ -304,6 +311,8 @@ export default {
       var img = new Image();
       img.onload = function() {
         self.configureCanvas(this.width, this.height);
+        self.width = this.width;
+        self.height = this.height;
       }
       img.src = this.image.src;
     },
@@ -321,15 +330,25 @@ export default {
       this.setCornerSize(this.cornerSize);
       //https://github.com/kangax/fabric.js/wiki/Working-with-events
       canvas.on({
+        'mouse:dblclick': this.mouseDblClickHandler,
         'mouse:down': this.mouseDownHandler,
         'mouse:up': this.mouseUpHandler,
         'mouse:move': this.mouseMoveHandler,
         'object:moving': this.objectMovingHandler,
         'mouse:over': this.mouseOverHandler,
         'mouse:out': this.mouseOutHandler,
+        'mouse:wheel': this.mouseWheelHandler,
       });
       this.setSelectMode();
       canvas.renderAll();
+    },
+
+    objectOverHandler: function(e) {
+      console.log("object over");
+      if (this.extremeClickMode) {
+        canvas.defaultCursor = 'default';
+      }
+      return;
     },
 
     objectMovingHandler: function(e) {
@@ -337,8 +356,8 @@ export default {
         return;
       } else if (this.polygonMode) {
         this.adjustPolygonClick(e);
-      } else if (isDrawing) {
-        this.initRectangle(e);
+      } else if (this.drawMode) {
+        this.handleDrawMove(e);
       } else {
         return;
       }
@@ -347,7 +366,7 @@ export default {
     mouseOverHandler: function(e) {
       //console.log("object over");
       if (this.extremeClickMode) {
-        return;
+        // canvas.hoverCursor = 'pointer';
       } else if (this.polygonMode) {
         this.handlePolygonMouseOver(e);
       } else if (this.drawMode) {
@@ -371,26 +390,77 @@ export default {
     },
 
     mouseDownHandler: function(e) {
-      //console.log("Mouse down", e.e.target);
-      isDown = true;
+      console.log("Mouse down", e);
+      console.log("T", e.target);
       if (this.extremeClickMode) {
         this.initExtremeClick(e);
       } else if (this.polygonMode) {
         this.initPolygon(e);
-      } else if (isDrawing) {
-        this.initRectangle(e);
+      } else if (this.drawMode) {
+        this.makeRectangle(e);
+      } else if (e.target === null) {
+        console.log("setting grab mode");
+        this.setGrabMode();
+      }
+    },
+
+    mouseUpHandler: function(e) {
+      console.log("Mouse up");
+      if (this.grabMode) {
+        this.exitGrabMode();
+      } else if (this.extremeClickMode) {
+        this.saveExtremeClick(e);
+      } else if (this.polygonMode) {
+        this.handlePolygonClick(e);        
+      } else if (this.drawMode) {
+        console.log("draw mode mouse up");
+        this.saveRectangle(e);
+      } else {
+        return;
+      }
+      canvas.renderAll();
+    },
+
+    mouseMoveHandler: function(e) {
+      if (this.grabMode) {
+        console.log("handling grab move")
+        this.handleGrabMove(e);
+      } else if (this.drawMode) {
+        this.handleDrawMove(e);
+      } else {
+        return;
+      }
+      canvas.renderAll();
+    },
+
+    mouseWheelHandler: function(e) {
+      console.log("Mouse wheel", e.e.target);
+      this.zoomToPoint(e);
+    },
+
+    mouseDblClickHandler: function(e) {
+      console.log("Mouse dblclick", e.e.target);
+      if (this.extremeClickMode && e.target !== null) {
+        this.resetExtremeClicks();
+        this.setSelectMode();
+        this.deselectObject();
+        canvas.setActiveObject(e.target);
+      } else if (this.polygonMode) {
+        return;
+      } else if (this.drawMode) {
+        print("Draw mode dbl click");
+        return;
       } else {
         return;
       }
     },
 
-    initRectangle: function(e) {
-      //console.log('handling draw');
+    makeRectangle: function(e) {
       var pointer = canvas.getPointer(e.e);
       origX = pointer.x;
       origY = pointer.y;
       var pointer = canvas.getPointer(e.e);
-      rect = new LabeledRect({
+      let rect = new LabeledRect({
         id: this.getRandId(),
         annoId: this.getRandId(),
         left: origX,
@@ -411,7 +481,9 @@ export default {
         labelType: BOX_LABEL,
         points: []
       });
-      canvas.add(rect);  
+      canvas.add(rect);
+      drawRect = rect;
+      canvas.renderAll();
     },
 
     getObjectById: function(id) {
@@ -435,7 +507,10 @@ export default {
     },
 
     initExtremeClick: function(e) {
-      //console.log('init extreme click');
+      console.log('init extreme click');
+      if (e.target !== null) {
+        console.log("found target");
+      }
     },
 
     initPolygon: function(e) {
@@ -445,12 +520,18 @@ export default {
 
     saveRectangle: function(e) {
       //console.log('saving rectangle');
-      rect.set({
+      drawRect.set({
         score: 1.0
       });
-      rect.setCoords();
-      canvas.setActiveObject(rect);
-      this.setSelectMode();
+      drawRect.setCoords();
+      drawRect.selectable = false;
+      // let copy = fabric.util.object.clone(drawRect);
+      // canvas.remove(drawRect);
+      // canvas.add(drawRect);
+      drawRect = null;
+      canvas.renderAll();
+      //this.setSelectMode();
+
     },
 
     saveExtremeClick: function(e) {
@@ -502,6 +583,7 @@ export default {
           left: this.getXCoordFromClick(pointer, circle.radius*1.5),
           top: this.getYCoordFromClick(pointer, circle.radius*1.5),
           fill: 'blue',
+          padding: 5,
         })
         canvas.add(circle);
         this.polygonClicks.push(circle.id);
@@ -539,7 +621,6 @@ export default {
           'y': click.top + click.radius
         })
       }
-      console.log(coords);
       let polygon = new fabric.Polygon(coords, {
         id: this.getRandId(),
         annoId: this.getRandId(),
@@ -563,9 +644,10 @@ export default {
 
     savePolygon: function() {
       let polygon = this.makePolygon();
+      polygon.selectable = false;
       canvas.add(polygon);
       // Update labels.json
-      this.resetPolygonMode();
+      this.exitPolygonMode();
       this.setSelectMode();
       canvas.setActiveObject(polygon);
     },
@@ -621,14 +703,18 @@ export default {
       let obj = e.target;
       if (obj !== undefined 
           && obj !== null
-          && this.polygonClicks.length > 0
-          && obj === this.polygonClicks[0]) {
-        obj.set({
-          stroke: 'green',
-          fill: 'green',
-        });
-        canvas.renderAll();
+          && this.polygonClicks.length > 0) {
+        if (obj === this.polygonClicks[0]) {
+          obj.set({
+            stroke: 'green',
+            fill: 'green',
+          });
+        } else if (obj.selectable === true) {
+          console.log("OBJ SELECTABLE")
+          canvas.hoverCursor = 'move';
+        }
       }
+      canvas.renderAll();
     },
 
     handlePolygonMouseOut: function(e) {
@@ -678,7 +764,7 @@ export default {
 
     makePoint: function(click) {
       return {
-        'id': click.id,
+        'id': this.getRandId(),
         'x': click.left += click.radius,
         'y': click.top += click.radius,
       }
@@ -706,22 +792,22 @@ export default {
           ymax = click.top;
         }
       }
-      xmin += this.clickRadius;
-      ymin += this.clickRadius;
-      xmax += this.clickRadius;
-      ymax += this.clickRadius;
       r = this.createRectFromCoords(xmin, ymin, xmax, ymax);
       r.points = points;
-      canvas.setActiveObject(r);
-      this.resetExtremeClicks();
+      this.removeExtremeClicks();
     },
 
-    resetExtremeClicks: function() {
+    removeExtremeClicks: function() {
       while (this.extremeClicks.length > 0){
         this.removeObjectById(this.extremeClicks[0]);
         this.extremeClicks.splice(0, 1);
       }
+    },
+
+    resetExtremeClicks: function() {
+      this.removeExtremeClicks();
       this.extremeClickMode = false;
+      print(this.image);
     },
 
     exists: function(obj) {
@@ -767,7 +853,7 @@ export default {
       }
     },
 
-    resetPolygonMode: function() {
+    exitPolygonMode: function() {
       if (this.exists(this.polygon)) {
         //save to labels.json and reload static
         console.log('polygon exists');
@@ -802,59 +888,37 @@ export default {
         score: 1.0,
         labelType: BOX_LABEL
       });
+      rect.selectable = false;
       canvas.add(rect);
-      canvas.bringToFront(rect)
       canvas.renderAll();
       return rect;
     },
 
-    mouseUpHandler: function(e) {
-      console.log("Mouse up");
-      isDown = false;
-      if (this.extremeClickMode) {
-        this.saveExtremeClick(e);
-      } else if (this.polygonMode) {
-        this.handlePolygonClick(e);        
-      } else if (isDrawing) {
-        this.saveRectangle(e);
-      } else {
-        return;
-      }
-      canvas.renderAll();
-    },
-
-    mouseMoveHandler: function(e) {
-      if (!isDrawing || !isDown) {
-        return;
-      }
-      if (this.extremeClickMode) {
-        //this.handleExtremeClickMove(e);
-      // } else if (this.polygonMode) {
-      //   this.movePolygonClick(e);
-      } else if (this.drawMode || isDrawing) {
-        this.handleDrawMove(e);
-      } else {
-        return;
-      }
-      canvas.renderAll();
+    handleGrabMove: function(e) {
+      console.log("handling grab move", e.e);
+      var delta = new fabric.Point(e.e.movementX, e.e.movementY) ;
+      canvas.relativePan(delta);
     },
 
     handleDrawMove: function(e) {
-      var pointer = canvas.getPointer(e.e);
+      if (!this.exists(drawRect)) {
+        return;
+      }
+      let pointer = canvas.getPointer(e.e);
       if (origX > pointer.x) {
-        rect.set({
+        drawRect.set({
           left: Math.abs(pointer.x)
         });
       }
       if (origY > pointer.y) {
-        rect.set({
+        drawRect.set({
           top: Math.abs(pointer.y)
         });
       }
-      rect.set({
+      drawRect.set({
         width: Math.abs(origX - pointer.x)
       });
-      rect.set({
+      drawRect.set({
         height: Math.abs(origY - pointer.y)
       });
     },
@@ -928,17 +992,19 @@ export default {
     },
     
     extractBB: function (rect) {
+      //Update to make sure coord is less than width/height of picture
       let bb = {}
       let coords = rect.get('aCoords');
       bb.id = rect.get('id');
       bb.annoId = rect.get('annoId');
       bb.label = rect.get('label');
       bb.score = rect.get('score');
-      bb.xmin = coords['tl']['x'],
-      bb.ymin = coords['tl']['y'],
-      bb.xmax = coords['tr']['x'],
-      bb.ymax = coords['br']['y'],
+      bb.xmin = Math.min(Math.max(coords['tl']['x'],0),this.width),
+      bb.ymin = Math.min(Math.max(coords['tl']['y'],0),this.height),
+      bb.xmax = Math.min(Math.max(coords['tr']['x'],0),this.width),
+      bb.ymax = Math.min(Math.max(coords['br']['y'],0),this.height),
       bb.points = rect.get('points');
+      console.log("Extracting", bb);
       return bb
     },
 
@@ -1110,7 +1176,7 @@ export default {
       if (obj !== undefined && obj !== null) {
         if (obj._objects instanceof Array) {
           if (this.polygonMode) {
-            this.resetPolygonMode();
+            this.exitPolygonMode();
             this.setPolygonMode();
           }
           if (obj._objects.length > 0) {
@@ -1170,13 +1236,98 @@ export default {
       canvas.renderAll();
     },
 
+    setCursors: function() {
+      if (this.extremeClickMode || this.polygonMode || this.drawMode) {
+        canvas.defaultCursor = 'pointer';
+        canvas.hoverCursor = 'pointer';
+      } else if (this.zoomMode) {
+        canvas.defaultCursor = 'zoom-in';
+        canvas.hoverCursor = 'zoom-in';
+      } else {
+        canvas.defaultCursor = 'default';
+        canvas.hoverCursor = 'move';
+      }
+      canvas.renderAll();
+    },
+
+    setZoomMode: function(e) {
+      console.log("Setting zoom mode");
+      this.zoomMode = true;
+      this.exitDrawMode();
+      this.exitPolygonMode();
+      this.resetExtremeClicks();
+      this.setCursors();
+    },
+
+    exitZoomMode: function() {
+      this.zoomMode = false;
+      this.setCursors();
+      this.exitGrabMode();
+    },
+
+    scalePoints: function(delta) {
+      console.log("scaling points by", this.zoomFactor, this.extremeClickRadius, this.polyClickRadius);
+      this.clickRadius = Math.min(Math.max(this.clickRadius * delta, 1), 10);
+      this.cornerSize = Math.min(Math.max(this.cornerSize * delta, 1), 10);
+      this.extremeClickRadius = Math.min(Math.max(this.extremeClickRadius * delta, 1), 10);
+      this.polyClickRadius = Math.min(Math.max(this.polyClickRadius * delta, 1), 10);
+      let self = this;
+      canvas.forEachObject(function(o) {
+        if (self.isLabelObject(o)) {
+          if (o.labelType === POLY_CLICK_LABEL) {
+            o.radius = self.polyClickRadius;
+          } else if (o.labelType === EC_LABEL) {
+            o.radius = self.extremeClickRadius;
+          }
+        }
+      })
+      canvas.renderAll();
+    },
+
+    zoomToPoint: function(e) {
+      console.log("zooming to point", e, e.target);
+      let pointer = canvas.getPointer(e.e);
+      console.log("WD", e.e.wheelDelta);
+      let zoomIn = e.e.wheelDelta < 0;
+      let curZoom = this.zoomFactor;
+      let cursor, delta;
+      if (zoomIn) {
+        cursor = 'zoom-in';
+        delta = 1.1;
+        //this.scalePoints(.95);
+      } else {
+        cursor = 'zoom-out';
+        delta = .95
+        //this.scalePoints(1.1);
+      }
+      this.zoomFactor *= delta;
+      console.log(cursor);
+      // canvas.defaultCursor = cursor;
+      // canvas.hoverCursor = cursor;
+      canvas.zoomToPoint(new fabric.Point(
+        e.e.offsetX, e.e.offsetY), this.zoomFactor);
+      //this.resetCursors();
+// let obj = e.target;
+      // if (obj !== undefined 
+      //     && obj !== null
+      //     && this.polygonClicks.length > 0
+      //     && obj === this.polygonClicks[0]) {
+      //   obj.set({
+      //     stroke: 'green',
+      //     fill: 'green',
+      //   });
+      //   canvas.renderAll();
+      // }
+    },
+
     setDrawMode: function () {
       this.deselectObject();
-      isDrawing = true;
       this.drawMode = true;
       let self = this;
+      this.exitGrabMode();
+      this.exitZoomMode();
       this.resetExtremeClicks();
-      this.resetPolygonMode();
+      this.exitPolygonMode();
       canvas.forEachObject(function(o) {
         if (self.isLabelObject(o)) {
           o.selectable = false;
@@ -1185,23 +1336,30 @@ export default {
       canvas.renderAll();
     },
 
+    exitDrawMode: function() {
+      this.deselectObject();
+      this.drawMode = false;
+    },
+
     setSelectMode: function() {
       console.log("ALL Objs", canvas.getObjects());
-      isDrawing = false;
-      this.drawMode = false;
       let self = this;
+      this.exitZoomMode();
+      this.exitDrawMode();
       this.resetExtremeClicks();
-      this.resetPolygonMode();
+      this.exitPolygonMode();
       canvas.forEachObject(function(o) {
         if (self.isLabelObject(o)) {
           console.log(o);
           o.set({selectable: true}).setCoords();
         }
-      }).selection = true;
+      });
       let obj = canvas.getActiveObject();
       if (obj === undefined || obj === null) {
         this.setDefaultObject();
       }
+      canvas.defaultCursor = 'default';
+      canvas.hoverCursor = 'move';
       canvas.renderAll();
     },
     
@@ -1210,12 +1368,17 @@ export default {
       this.extremeClickMode = true;
       this.extremeClicks = [];
       let self = this;
-      this.resetPolygonMode();
+      this.exitZoomMode();
+      this.exitGrabMode();
+      this.exitDrawMode();
+      this.exitPolygonMode();
       canvas.forEachObject(function(o) {
         if (self.isLabelObject(o)) {
           o.selectable = false;
         }
       }).selection = false;
+      canvas.defaultCursor = 'pointer';
+      canvas.hoverCursor = 'pointer';
       canvas.renderAll();
     },
 
@@ -1224,6 +1387,9 @@ export default {
       this.polygonMode = true;
       this.polygonClicks = [];
       let self = this;
+      this.exitZoomMode();
+      this.exitGrabMode();
+      this.exitDrawMode();
       this.resetExtremeClicks();
       canvas.forEachObject(function(o) {
         if (self.isLabelObject(o)) {
@@ -1231,6 +1397,17 @@ export default {
         }
       }).selection = false;
       canvas.renderAll();
+    },
+
+    setGrabMode: function(e) {
+      this.grabMode = true;
+      canvas.defaultCursor = 'move';
+      canvas.renderAll();
+    },
+
+    exitGrabMode: function() {
+      this.grabMode = false;
+      this.setCursors();
     },
 
     toggleUnselectedVisibility: function(updateToggle) {
