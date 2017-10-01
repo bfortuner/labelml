@@ -56,7 +56,7 @@ const KEYS = [
         'key': 'delete',
         'code': 46,
         'combo': false,
-        'desc': 'delete object'
+        'desc': null
     },
     {
         'key': 'backspace',
@@ -71,43 +71,91 @@ const KEYS = [
         'desc': 'deselect object'
     },
     {
+        'key': 'a',
+        'code': 65,
+        'combo': false,
+        'desc': null
+    },
+    {
         'key': 's',
         'code': 83,
         'combo': false,
-        'desc': 'select mode'
+        'desc': null
     },
     {
         'key': 'd',
         'code': 68,
         'combo': false,
-        'desc': 'draw mode'
+        'desc': null
     },
     {
         'key': 'c',
         'code': 67,
         'combo': false,
-        'desc': 'click-to-box mode'
+        'desc': null
     },
     {
         'key': 'p',
         'code': 80,
         'combo': false,
-        'desc': 'polygon mode'
+        'desc': null
     },
     {
         'key': 'n',
         'code': 78,
         'combo': false,
-        'desc': 'next image'
+        'desc': null
     },
     {
         'key': 'z',
         'code': 90,
         'combo': false,
-        'desc': 'zoom-in'
+        'desc': null
     },
     {
-        'key': 'shift + z',
+        'key': 'ctrl + h',
+        'code': null,
+        'combo': true,
+        'desc': 'hide unselected'
+    },
+    {
+        'key': 'ctrl + a',
+        'code': null,
+        'combo': true,
+        'desc': 'select'
+    },
+    {
+        'key': 'ctrl + d',
+        'code': null,
+        'combo': true,
+        'desc': 'box tool'
+    },
+    {
+        'key': 'ctrl + c',
+        'code': null,
+        'combo': true,
+        'desc': 'click-to-box'
+    },
+    {
+        'key': 'ctrl + p',
+        'code': null,
+        'combo': true,
+        'desc': 'polygon tool'
+    },
+    {
+        'key': 'ctrl + n',
+        'code': null,
+        'combo': true,
+        'desc': 'next image'
+    },
+    {
+        'key': 'ctrl + z',
+        'code': null,
+        'combo': true,
+        'desc': 'zoom mode'
+    },
+    {
+        'key': 'shift + click',
         'code': null,
         'combo': true,
         'desc': 'zoom-out'
@@ -116,7 +164,7 @@ const KEYS = [
         'key': 'h',
         'code': 72,
         'combo': false,
-        'desc': 'hide/unhide non-selected'
+        'desc': null
     },
     {
         'key': 'up',

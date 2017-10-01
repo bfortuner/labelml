@@ -14,20 +14,33 @@
         <v-list-tile @click="setPolygonMode()" v-tooltip:bottom="{ html: 'Polygon' }">
           <v-icon large>mode_edit</v-icon>
         </v-list-tile>
-        <v-list-tile @click="toggleUnselectedVisibility()" v-tooltip:bottom="{ html: 'Hide mode' }">
+        <v-list-tile @click="toggleUnselectedVisibility(true)" v-tooltip:bottom="{ html: 'Hide mode' }">
           <v-icon large>layers</v-icon>
         </v-list-tile>
         <v-list-tile @click="setZoomMode()" v-tooltip:bottom="{ html: 'Zoom mode' }">
           <v-icon large>zoom_in</v-icon>
         </v-list-tile>
-        <v-list-tile @click="deleteObject()"" v-tooltip:bottom="{ html: 'Delete' }">
+        <!-- <v-list-tile @click="resetZoom()" v-tooltip:bottom="{ html: 'Reset zoom' }">
+          <v-icon large>zoom_out</v-icon>
+        </v-list-tile> -->
+        <v-list-tile @click="deleteObject()" v-tooltip:bottom="{ html: 'Delete' }">
           <v-icon large>delete</v-icon>
         </v-list-tile>
         <v-list-tile to="/" v-tooltip:bottom="{ html: 'Help' }">
           <v-icon large>help_outline</v-icon>
         </v-list-tile>
-        <v-list-tile v-tooltip:bottom="{ html: 'Shortcuts' }">
-          <v-icon large>keyboard</v-icon>
+        <v-list-tile @click="" v-tooltip:bottom="{ html: 'Shortcuts' }">
+          <v-bottom-sheet v-model="shortcutSheet">
+          <v-icon slot="activator" large>keyboard</v-icon>
+          <v-list two-line subheader>
+            <v-list-tile avatar v-for="shortcut in shortcuts" v-if="shortcut.desc !== null" :key="shortcut.key">
+              <v-list-tile-content>
+                <v-list-tile-title>{{shortcut.desc}}</v-list-tile-title>
+                <v-list-tile-sub-title>{{shortcut.key}}</v-list-tile-sub-title>
+              </v-list-tile-content>
+            </v-list-tile>
+          </v-list>
+          </v-bottom-sheet>
         </v-list-tile>
       </v-list>
     </v-navigation-drawer>
@@ -47,8 +60,17 @@
           label="Select label"
           return-object
           :autocomplete="autocompleteLabels"
-          clearable
         ></v-select>
+      </v-flex>
+      <v-flex xs2 sm2>
+        <v-slider 
+        v-on="adjustThreshold()"
+        v-model="sliderValue"
+        :step="5" 
+        snap 
+        thumb-label
+        dark>
+        </v-slider>
       </v-flex>
     <v-btn icon @click="prevImage()" v-tooltip:bottom="{ html: 'Previous image' }">
       <v-icon large>navigate_before</v-icon>
@@ -69,7 +91,7 @@
         <canvas id="c"></canvas>
       </v-container>
     </main>
-    
+
     <v-footer dark>
       <span class="white--text">© 2017</span>
     </v-footer>
@@ -82,9 +104,6 @@ import {fabric} from 'fabric'
 import RangeSlider from 'vue-range-slider'
 
 import keys from '../constants/keyboard.js';
-console.log(keys);
-console.log(keys.KEY_MAP);
-console.log(keys.KEYS);
 
 import 'vue-range-slider/dist/vue-range-slider.css'
 import { OBJ_DETECT_IMG_QUERY } from '../constants/graphql'
@@ -209,8 +228,8 @@ export default {
     return {
       id: '',
       image: {},
-      selectedLabel: '',
-      sliderValue: 0.0,
+      selectedLabel: null,
+      sliderValue: 100,
       clickRadius: 4,
       cornerSize: 7,
       extremeClickRadius: 4,
@@ -232,6 +251,16 @@ export default {
       minZoom: .25,
       drawer: null,
       mini: true,
+      shortcutSheet: false,
+      shortcuts: keys.KEYS,
+      shortcutHeaders: ['key', 'description'],
+      tiles: [
+        { img: 'keep.png', title: 'Keep' },
+        { img: 'inbox.png', title: 'Inbox' },
+        { img: 'hangouts.png', title: 'Hangouts' },
+        { img: 'messenger.png', title: 'Messenger' },
+        { img: 'google.png', title: 'Google+' },
+      ]
     }
   },
   
@@ -247,8 +276,7 @@ export default {
         this.image = data.nextObjDetectImage;
         this.labels = data.nextObjDetectImage.labels;
         this.colors = this.makeColors(this.labels);
-        this.selectedLabel = this.labels[0].value;
-        console.log(this.selectedLabel)
+        this.selectedLabel = this.labels[0];
         this.initializeCanvas();
         this.loadAnnotations();
       },
@@ -259,6 +287,14 @@ export default {
       autocompleteLabels: function () {
         return false;
     },
+  },
+
+  filters: {
+    capitalize: function (value) {
+      if (!value) return ''
+      value = value.toString()
+      return value.charAt(0).toUpperCase() + value.slice(1)
+    }
   },
 
   mounted: function() {
@@ -277,7 +313,7 @@ export default {
       } else {
         key = keyObj.key;
       }
-      
+      console.log("Key", e.keyCode);
       if (key === 's' && e.ctrlKey) {
         self.save();
       } else if (key === 'z' && e.ctrlKey) {
@@ -288,7 +324,7 @@ export default {
         self.setPolygonMode();
       } else if (key === 'n' && e.ctrlKey) {
         self.nextImage();
-      } else if (key === 's' && e.ctrlKey) {
+      } else if (key === 'a' && e.ctrlKey) {
         self.setSelectMode();
       } else if (key === 'd' && e.ctrlKey) {
         self.setDrawMode();
@@ -413,6 +449,8 @@ export default {
         this.initPolygon(e);
       } else if (this.drawMode) {
         this.makeRectangle(e);
+      } else if (this.zoomMode) {
+        this.zoomToClick(e);
       } else if (e.target === null) {
         console.log("setting grab mode");
         this.setGrabMode();
@@ -420,7 +458,7 @@ export default {
     },
 
     mouseUpHandler: function(e) {
-      console.log("Mouse up");
+      console.log("Mouse up", this.sliderValue);
       if (this.grabMode) {
         this.exitGrabMode();
       } else if (this.extremeClickMode) {
@@ -536,7 +574,8 @@ export default {
     },
 
     saveRectangle: function(e) {
-      //console.log('saving rectangle');
+      console.log('saving rectangle', this.selectedLabel);
+      console.log(drawRect);
       drawRect.set({
         score: 1.0
       });
@@ -941,6 +980,7 @@ export default {
     },
 
     loadBB: function(bbox) {
+      console.log("slider",this.sliderValue/100);
       let rect = new LabeledRect({
         id: bbox.id,
         annoId: bbox.annoId,
@@ -956,7 +996,7 @@ export default {
         selectable: false,
         label: bbox.label,
         opacity: 0.3,
-        visible: bbox.score >= this.sliderValue,
+        visible: bbox.score >= (this.sliderValue/100),
         score: bbox.score,
         transparentCorners: true,
         cornerSize: this.cornerSize,
@@ -985,12 +1025,14 @@ export default {
 
     getColor: function () {
       let label = this.getCurLabel();
+      console.log("GETTING LABEL COLOR", label);
+      console.log("GETTING LABEL COLOR", this.colors[label]);
       return this.colors[label];
     },
 
     getCurLabel: function () {
       console.log("SELECTED", this.selectedLabel);
-      return this.selectedLabel;
+      return this.selectedLabel.value;
     },
 
     getRandId: function () {
@@ -1082,12 +1124,12 @@ export default {
           let bb = this.extractBB(o);
           let width = bb.xmax - bb.xmin;
           let height = bb.ymax - bb.ymin;
-          if (width !== 0 && height !== 0 && bb.score >= this.sliderValue) {
+          if (width !== 0 && height !== 0 && bb.score >= this.sliderValue/100) {
             anno['bbox'] = bb;
           }
         } else if (o.labelType === POLYGON_LABEL) {
           let poly = this.extractPolygon(o);
-          if (poly.points.length > 2 && poly.score >= this.sliderValue) {
+          if (poly.points.length > 2 && poly.score >= this.sliderValue/100) {
             anno['polygon'] = poly;
           }
         }
@@ -1124,12 +1166,12 @@ export default {
 
     adjustThreshold: function() {
       let self = this;
-      const val = this.sliderValue;
+      const val = this.sliderValue/100;
+      console.log("VALUE", val);
       let visible;
       if (canvas !== undefined) {
         canvas.forEachObject(function(o) {
           if (self.isLabelObject(o)) {
-            print("WHATTTSUP", o);
             if (o.score >= val) {
               o.visible = true;
             } else {
@@ -1154,7 +1196,7 @@ export default {
       canvas.discardActiveObject();
       let boxes = [];
       canvas.forEachObject(function(o) {
-        if (self.isLabelObject(o) && o.score >= self.sliderValue) {
+        if (self.isLabelObject(o) && o.score >= self.sliderValue/100) {
           boxes.push(o);
         }
       })
@@ -1216,18 +1258,20 @@ export default {
     },
 
     setDefaultObject: function() {
+      let box;
       if (canvas !== undefined) {
         let boxes = canvas.getObjects();
         this.sortBoxesByProp(boxes, 'left');
         for (let i in boxes) {
           if (this.isLabelObject(boxes[i])) {
-            if (boxes[i].score >= this.sliderValue) {
+            if (boxes[i].score >= this.sliderValue/100) {
               canvas.setActiveObject(boxes[i]);
-              break;
+              canvas.renderAll();
+              return boxes[i];
             }
           }
         }
-        canvas.renderAll();
+
       }
     },
 
@@ -1304,6 +1348,30 @@ export default {
       canvas.renderAll();
     },
 
+    resetZoom: function() {
+      this.zoomFactor = 1 ;
+      console.log(canvas.width, canvas.height);
+      canvas.setZoom(this.zoomFactor);
+      canvas.zoomToPoint(new fabric.Point(
+        canvas.width/2, canvas.height/2), this.zoomFactor);
+    },
+
+    zoomToClick: function(e) {
+      let pointer = canvas.getPointer(e.e);
+      console.log("ZP", e);
+      let cursor, delta;
+      if (e.e.shiftKey) {
+        cursor = 'zoom-out';
+        delta = .95;
+      } else {
+        cursor = 'zoom-in';
+        delta = 1.1;
+      }
+      this.zoomFactor *= delta;
+      canvas.zoomToPoint(new fabric.Point(
+        e.e.offsetX, e.e.offsetY), this.zoomFactor);
+    },
+
     zoomToPoint: function(e) {
       console.log("zooming to point", e, e.target);
       let pointer = canvas.getPointer(e.e);
@@ -1362,7 +1430,7 @@ export default {
     },
 
     setSelectMode: function() {
-      console.log("ALL Objs", canvas.getObjects());
+      console.log("S ALL Objs", canvas.getObjects());
       let self = this;
       this.exitZoomMode();
       this.exitDrawMode();
@@ -1431,15 +1499,18 @@ export default {
     },
 
     toggleUnselectedVisibility: function(updateToggle) {
-      if (updateToggle) {
+      if (updateToggle !== undefined && updateToggle) {
         //console.log("Updating toggle", this.hideUnselected, !this.hideUnselected);
         this.hideUnselected = !this.hideUnselected;
-      } 
+      }
       let curBox = canvas.getActiveObject();
+      if (!this.exists(curBox)) {
+        curBox = this.setDefaultObject();
+      }
       let allBoxes = canvas.getObjects();
       for (let box of allBoxes) {
         if (box.id !== curBox.id) {
-          if (box.score < this.sliderValue) {
+          if (box.score < this.sliderValue/100) {
             box.visible = false;
           } else {
             //console.log("Making visible", !this.hideUnselected);
