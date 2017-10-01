@@ -1,37 +1,80 @@
 <template>
-  <div class="editor">
-    <router-link to="/" tag="button">Home</router-link>
-    <button @click="getNextImg()">Next</button>
-    <button @click="save()">Save</button>
-    <button @click="deleteObject()">Delete</button>
-    <button @click="setDrawMode()">Box</button>
-    <button @click="setExtremeClickMode()">Click-to-box</button>
-    <button @click="setPolygonMode()">Polygon</button>
-    <button @click="setSelectMode()">Select</button>
-    <select id='select-label' v-model="selectedLabel">
-      <option v-for="label in labels"
-            v-bind:value="label.value" :key="label.value">
-        {{ label.value }}
-      </option>
-    </select>
-    <range-slider
-      class="slider"
-      min="0"
-      max="1"
-      step=".05"
-      v-model="sliderValue"
-      v-on="adjustThreshold()">
-    </range-slider>
-    <!-- <vue-slider
-      class="slider"
-      min=0
-      max=1
-      interval=.05
-      v-model="sliderValue"
-      v-on="adjustThreshold()">
-    </vue-slider> -->
-    <canvas id="c"></canvas>
-  </div>
+  <v-app id="example-1" dark>
+    <v-navigation-drawer permanent clipped dark :mini-variant="mini">
+      <v-list class="pt-0">
+        <v-list-tile @click="setSelectMode()" v-tooltip:bottom="{ html: 'Select' }">
+          <v-icon large>open_with</v-icon>
+        </v-list-tile>
+        <v-list-tile @click="setDrawMode()" v-tooltip:bottom="{ html: 'Draw box' }">
+          <v-icon large>crop_free</v-icon>
+        </v-list-tile>
+        <v-list-tile @click="setExtremeClickMode()" v-tooltip:bottom="{ html: 'Click box' }">
+          <v-icon large>filter_center_focus</v-icon>
+        </v-list-tile>
+        <v-list-tile @click="setPolygonMode()" v-tooltip:bottom="{ html: 'Polygon' }">
+          <v-icon large>mode_edit</v-icon>
+        </v-list-tile>
+        <v-list-tile @click="toggleUnselectedVisibility()" v-tooltip:bottom="{ html: 'Hide mode' }">
+          <v-icon large>layers</v-icon>
+        </v-list-tile>
+        <v-list-tile @click="setZoomMode()" v-tooltip:bottom="{ html: 'Zoom mode' }">
+          <v-icon large>zoom_in</v-icon>
+        </v-list-tile>
+        <v-list-tile @click="deleteObject()"" v-tooltip:bottom="{ html: 'Delete' }">
+          <v-icon large>delete</v-icon>
+        </v-list-tile>
+        <v-list-tile to="/" v-tooltip:bottom="{ html: 'Help' }">
+          <v-icon large>help_outline</v-icon>
+        </v-list-tile>
+        <v-list-tile v-tooltip:bottom="{ html: 'Shortcuts' }">
+          <v-icon large>keyboard</v-icon>
+        </v-list-tile>
+      </v-list>
+    </v-navigation-drawer>
+
+    <v-toolbar fixed class="darken-2" dark>
+    <v-btn icon to="/">
+      <v-icon>arrow_back</v-icon>
+    </v-btn>
+      <v-toolbar-title>My Project</v-toolbar-title>
+      <v-spacer></v-spacer>
+
+      <v-flex xs3 sm3>
+        <v-select id='select-label'
+          prepend-icon="label"
+          v-bind:items="labels"
+          v-model="selectedLabel"
+          label="Select label"
+          return-object
+          :autocomplete="autocompleteLabels"
+          clearable
+        ></v-select>
+      </v-flex>
+    <v-btn icon @click="prevImage()" v-tooltip:bottom="{ html: 'Previous image' }">
+      <v-icon large>navigate_before</v-icon>
+    </v-btn>
+    <v-btn icon @click="nextImage()" v-tooltip:bottom="{ html: 'Next image' }">
+      <v-icon large>navigate_next</v-icon>
+    </v-btn>
+    <v-btn icon @click="save()" v-tooltip:bottom="{ html: 'Save annotations' }">
+      <v-icon large>save</v-icon>
+    </v-btn>
+    <v-btn icon>
+      <v-icon large>more_vert</v-icon>
+    </v-btn>    
+    </v-toolbar>
+
+    <main>
+      <v-container fluid>
+        <canvas id="c"></canvas>
+      </v-container>
+    </main>
+    
+    <v-footer dark>
+      <span class="white--text">© 2017</span>
+    </v-footer>
+  </v-app>
+  
 </template>
 
 <script>
@@ -75,8 +118,10 @@ function onKeyDownHandler(e) {
     key = keyObj.key;
   }
   let obj = canvas.getActiveObject();
-  e.preventDefault();
-  e.stopImmediatePropagation()
+  if (e.shiftKey || e.ctrlKey || e.altKey || e.keyCode === 9) {
+    e.preventDefault();
+    e.stopImmediatePropagation()
+  }
   
   // Shrink box
   if (key === 'left' && e.shiftKey && e.altKey) {
@@ -142,7 +187,7 @@ var LabeledRect = fabric.util.createClass(fabric.Rect, {
         this.callSuper('_render', ctx);
         let score = Math.round(this.score * 100) / 100;
         let text = this.label + " (" + score + ")";
-        ctx.font = '10px Helvetica';
+        ctx.font = '14px Helvetica';
         ctx.fillStyle = '#ffffff';
         ctx.fillText(text, -this.width/2, -this.height/2 + 8);
     }
@@ -165,7 +210,7 @@ export default {
       id: '',
       image: {},
       selectedLabel: '',
-      sliderValue: 1.0,
+      sliderValue: 0.0,
       clickRadius: 4,
       cornerSize: 7,
       extremeClickRadius: 4,
@@ -176,8 +221,6 @@ export default {
       extremeClickMode: false,
       extremeClicks: [],
       polygonMode: false,
-      polygonX: [],
-      polygonY: [],
       polygonClicks: [],
       labels: [],
       colors: {},
@@ -187,6 +230,8 @@ export default {
       zoomMode: false,
       maxZoom: 10,
       minZoom: .25,
+      drawer: null,
+      mini: true,
     }
   },
   
@@ -203,6 +248,7 @@ export default {
         this.labels = data.nextObjDetectImage.labels;
         this.colors = this.makeColors(this.labels);
         this.selectedLabel = this.labels[0].value;
+        console.log(this.selectedLabel)
         this.initializeCanvas();
         this.loadAnnotations();
       },
@@ -210,7 +256,9 @@ export default {
   },
   
   computed: {
-
+      autocompleteLabels: function () {
+        return false;
+    },
   },
 
   mounted: function() {
@@ -232,19 +280,19 @@ export default {
       
       if (key === 's' && e.ctrlKey) {
         self.save();
-      } else if (key === 'z') {
+      } else if (key === 'z' && e.ctrlKey) {
         self.setZoomMode();
-      } else if (key === 'c') {
+      } else if (key === 'c' && e.ctrlKey) {
         self.setExtremeClickMode();
-      } else if (key === 'p') {
+      } else if (key === 'p' && e.ctrlKey) {
         self.setPolygonMode();
-      } else if (key === 'n') {
-        self.getNextImg();
-      } else if (key === 's') {
+      } else if (key === 'n' && e.ctrlKey) {
+        self.nextImage();
+      } else if (key === 's' && e.ctrlKey) {
         self.setSelectMode();
-      } else if (key === 'd') {
+      } else if (key === 'd' && e.ctrlKey) {
         self.setDrawMode();
-      } else if (key === 'h') {
+      } else if (key === 'h' && e.ctrlKey) {
         self.toggleUnselectedVisibility(true);
       } else if (key === 'tab' && e.shiftKey) {
         self.navigateNextBox('left');
@@ -402,7 +450,9 @@ export default {
 
     mouseWheelHandler: function(e) {
       console.log("Mouse wheel", e.e.target);
-      this.zoomToPoint(e);
+      if (this.zoomMode) {
+        this.zoomToPoint(e);
+      }
     },
 
     mouseDblClickHandler: function(e) {
@@ -615,8 +665,8 @@ export default {
       canvas.add(polygon);
       // Update labels.json
       this.exitPolygonMode();
-      this.setSelectMode();
-      canvas.setActiveObject(polygon);
+      this.setPolygonMode();
+      // canvas.setActiveObject(polygon);
     },
 
     adjustPolygonClick: function(e) {
@@ -939,9 +989,8 @@ export default {
     },
 
     getCurLabel: function () {
-        let select = document.getElementById("select-label");
-        let value = select.options[select.selectedIndex].value;
-        return value;
+      console.log("SELECTED", this.selectedLabel);
+      return this.selectedLabel;
     },
 
     getRandId: function () {
@@ -1046,7 +1095,11 @@ export default {
       return anno;
     },
 
-    getNextImg: function () {
+    nextImage: function () {
+      this.$apollo.queries.nextObjDetectImage.refetch();
+    },
+
+    prevImage: function () {
       this.$apollo.queries.nextObjDetectImage.refetch();
     },
 

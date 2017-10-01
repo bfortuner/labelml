@@ -17,11 +17,13 @@
     "apollo-client": "^1.9.2",
     "fabric": "^2.0.0-beta.6",
     "graphql-tag": "^2.4.2",
+    "material-icons": "^0.1.0",
     "vue": "^2.4.2",
     "vue-apollo": "^2.1.0-rc.4",
     "vue-range-slider": "^0.2.4",
     "vue-router": "^2.7.0",
-    "vue-slider-component": "^2.4.1"
+    "vue-slider-component": "^2.4.1",
+    "vuetify": "^0.15.7"
   },
   "devDependencies": {
     "autoprefixer": "^7.1.2",

@@ -65,7 +65,7 @@ class DevConfig(Config):
     DEBUG = True
 
 #config = globals()[os.getenv('LABELML_ENV', 'ProdConfig')]
-env = os.getenv('LABELML_ENV', 'prod')
+env = os.getenv('LABELML_ENV', 'dev')
 if env == 'prod':
     ENDPOINT = ProdConfig.ENDPOINT
 else:
@@ -73,4 +73,4 @@ else:
 
 # ENDPOINT = 'http://labelml.wfcpkpjahu.us-west-1.elasticbeanstalk.com'
 IMG_ENDPOINT = ENDPOINT + '/img'
-    
+print("IMG", IMG_ENDPOINT)

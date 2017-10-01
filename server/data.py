@@ -110,6 +110,7 @@ def get_obj_detect_label_opts(project):
     for i,v in enumerate(fold['label_names']):
         labels.append({
             'value': v,
+            'text': v,
             'color': COLORS[i]
         })
     return labels

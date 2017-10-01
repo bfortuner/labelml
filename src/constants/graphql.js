@@ -49,6 +49,7 @@ query NextObjDetectImage($project:String!) {
         }
         labels {
           color
+          text
           value
         }
     }
@@ -72,6 +73,7 @@ query ObjDetectImageQuery($id:String!, $project:String!) {
         }
         labels {
             color
+            text
             value
         }
     }
@@ -82,7 +84,8 @@ export const OBJ_DETECT_LABEL_OPT_QUERY = gql`
 query ObjDetectLabelOptQuery($project:String!) {
     objDetectLabelOpts(project: $project) {
         labels {
-          	value
+            value
+            text
             color
         }
     }

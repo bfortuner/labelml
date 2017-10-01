@@ -22,7 +22,7 @@ BoundingBox = namedtuple('BoundingBox', 'id annoId label score xmin ymin xmax ym
 Polygon = namedtuple('Polygon', 'id annoId label score points')
 ObjDetectImage = namedtuple('ObjDetectImage', 'id project src annotations labels') 
 ObjDetectLabelOpts = namedtuple('ObjDetectLabelOpts', 'labels') 
-ColorLabel = namedtuple('ColorLabel', 'value color') 
+ColorLabel = namedtuple('ColorLabel', 'value text color') 
 
 
 PointType = GraphQLObjectType(
@@ -61,6 +61,9 @@ ColorLabelType = GraphQLObjectType(
     name='ColorLabel',
     fields= {
         'value': GraphQLField(
+            GraphQLNonNull(GraphQLString),
+        ),
+        'text': GraphQLField(
             GraphQLNonNull(GraphQLString),
         ),
         'color': GraphQLField(
@@ -370,6 +373,7 @@ def make_image(id_, fold, dset):
 def make_obj_detect_label_opt(label):
     return ColorLabel(
         value=label['value'],
+        text=label['text'],
         color=label['color']
     )
 
