@@ -2,6 +2,7 @@
   <v-app id="example-1" dark>
     <v-navigation-drawer permanent clipped dark :mini-variant="mini">
       <v-list class="pt-0">
+
         <v-list-tile @click="setSelectMode()" v-tooltip:bottom="{ html: 'Select' }">
           <v-icon large>open_with</v-icon>
         </v-list-tile>

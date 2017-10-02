@@ -8,28 +8,22 @@
     <main>
       <section>
         <!-- <v-parallax src="http://pre11.deviantart.net/3e10/th/pre/f/2017/144/8/0/fight_by_nesskain-dbaa5v1.jpg" height="600"> -->
-        <v-parallax src="https://s3-us-west-1.amazonaws.com/labelai-static/hero.jpeg" height="600">
+        <!-- <v-parallax src="https://s3-us-west-1.amazonaws.com/labelai-static/hero.jpeg" height="600"> -->
+        <v-parallax src="https://s3.amazonaws.com/aws-website-labelai-gffh8/Screen+Shot+2017-10-01+at+6.01.48+PM.png" height="600">
+        
           <v-layout
             column
             align-center
             justify-center
             class="white--text"
           >
-            <h5>label.ai</h5>
-            <h1 class="white--text mb-2 display-3">Parallax Template</h1>
-            <div class="headline mb-3 text-xs-center">Powered by Vuetify</div>
+            <h1 class="white--text mb-2 display-3">Blazing fast image annotation</h1>
+            <div class="headline mb-3 text-xs-center">Label training data 10x faster with predictive clicking</div>
             <v-btn
               class="blue lighten-2 mt-5"
               dark
               large
-              to='/project/example_data'
-            >
-            Watch video
-            </v-btn>
-            <v-btn
-              class="blue lighten-2 mt-5"
-              dark
-              large
+              ripple
               to='/project/example_data'
             >
             Try Demo
@@ -45,14 +39,6 @@
           class="my-5"
           align-center
         >
-          <v-flex xs12 sm4 class="my-3">
-            <div class="text-xs-center">
-              <h2 class="headline">The best way to start developing</h2>
-              <span class="subheading">
-                Cras facilisis mi vitae nunc 
-              </span>
-            </div>
-          </v-flex>
           <v-flex xs12>
             <v-container grid-list-xl>
               <v-layout row wrap align-center>
@@ -62,12 +48,11 @@
                       <v-icon x-large class="blue--text text--lighten-2">color_lens</v-icon>
                     </v-card-text>
                     <v-card-title primary-title class="layout justify-center">
-                      <div class="headline text-xs-center">Material Design</div>
+                      <div class="headline text-xs-center">Intuitive UI</div>
                     </v-card-title>
                     <v-card-text>
-                      Cras facilisis mi vitae nunc lobortis pharetra. Nulla volutpat tincidunt ornare. 
-                      Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. 
-                      Nullam in aliquet odio. Aliquam eu est vitae tellus bibendum tincidunt. Suspendisse potenti. 
+                      Extensive keyboard shortcuts and smart editing tools designed for speed
+                      provide unparalleled speed and control of your workflow.
                     </v-card-text>
                   </v-card>
                 </v-flex>
@@ -77,12 +62,11 @@
                       <v-icon x-large class="blue--text text--lighten-2">flash_on</v-icon>
                     </v-card-text>
                     <v-card-title primary-title class="layout justify-center">
-                      <div class="headline">Fast development</div>
+                      <div class="headline">AI Acceleration</div>
                     </v-card-title>
                     <v-card-text>
                       Cras facilisis mi vitae nunc lobortis pharetra. Nulla volutpat tincidunt ornare. 
-                      Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. 
-                      Nullam in aliquet odio. Aliquam eu est vitae tellus bibendum tincidunt. Suspendisse potenti. 
+                      Pellentesque habitant morbi tristique senectus.
                     </v-card-text>
                   </v-card>
                 </v-flex>
@@ -92,12 +76,10 @@
                       <v-icon x-large class="blue--text text--lighten-2">build</v-icon>
                     </v-card-text>
                     <v-card-title primary-title class="layout justify-center">
-                      <div class="headline text-xs-center">Completely Open Sourced</div>
+                      <div class="headline text-xs-center">Open Source</div>
                     </v-card-title>
                     <v-card-text>
-                      Cras facilisis mi vitae nunc lobortis pharetra. Nulla volutpat tincidunt ornare. 
-                      Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. 
-                      Nullam in aliquet odio. Aliquam eu est vitae tellus bibendum tincidunt. Suspendisse potenti. 
+                      Download and run a basic version of our app for free locally on your machine!
                     </v-card-text>
                   </v-card>
                 </v-flex>
@@ -110,8 +92,8 @@
       <section>
         <v-parallax src="https://s3-us-west-1.amazonaws.com/labelai-static/section.jpeg" height="380">
           <v-layout column align-center justify-center>
-            <div class="headline white--text mb-3">Web development has never been easier</div>
-            <em>Kick-start your application today</em>
+            <div class="headline white--text mb-3">Labeling training data has never been easier</div>
+            <em>Kick-start your machine learning project today</em>
             <v-btn
               class="blue lighten-2 mt-5"
               dark
@@ -134,8 +116,7 @@
                 </v-card-title>
                 <v-card-text>
                   Cras facilisis mi vitae nunc lobortis pharetra. Nulla volutpat tincidunt ornare. 
-                  Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. 
-                  Nullam in aliquet odio. Aliquam eu est vitae tellus bibendum tincidunt. Suspendisse potenti. 
+                  Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.
                 </v-card-text>
               </v-card>
             </v-flex>
@@ -144,24 +125,13 @@
                 <v-card-title primary-title class="layout justify-center">
                   <div class="headline">Contact us</div>
                 </v-card-title>
-                <v-card-text>
-                  Cras facilisis mi vitae nunc lobortis pharetra. Nulla volutpat tincidunt ornare.
-                </v-card-text>
                 <v-list class="transparent">
-                  <v-list-tile>
-                    <v-list-tile-action>
-                      <v-icon class="blue--text text--lighten-2">phone</v-icon>
-                    </v-list-tile-action>
-                    <v-list-tile-content>
-                      <v-list-tile-title>777-867-5309</v-list-tile-title>
-                    </v-list-tile-content>
-                  </v-list-tile>
                   <v-list-tile>
                     <v-list-tile-action>
                       <v-icon class="blue--text text--lighten-2">place</v-icon>
                     </v-list-tile-action>
                     <v-list-tile-content>
-                      <v-list-tile-title>Chicago, US</v-list-tile-title>
+                      <v-list-tile-title>San Francisco, US</v-list-tile-title>
                     </v-list-tile-content>
                   </v-list-tile>
                   <v-list-tile>
@@ -169,7 +139,7 @@
                       <v-icon class="blue--text text--lighten-2">email</v-icon>
                     </v-list-tile-action>
                     <v-list-tile-content>
-                      <v-list-tile-title>john@vuetifyjs.com</v-list-tile-title>
+                      <v-list-tile-title>bfortuner@gmail.com</v-list-tile-title>
                     </v-list-tile-content>
                   </v-list-tile>
                 </v-list>
@@ -185,7 +155,7 @@
             <div class="white--text ml-3">
               Made with
               <v-icon class="red--text">favorite</v-icon>
-              by <a class="white--text" href="https://vuetifyjs.com" target="_blank">Vuetify</a>
+              in San Francisco</a>
             </div>
           </v-flex>
         </v-layout>
@@ -204,7 +174,7 @@ export default {
   data () {
       return {
           drawer: true,
-          title: 'LABEL.AI'
+          title: 'label.ml'
       }
   }
 }

@@ -65,7 +65,7 @@ class DevConfig(Config):
     DEBUG = True
 
 #config = globals()[os.getenv('LABELML_ENV', 'ProdConfig')]
-env = os.getenv('LABELML_ENV', 'dev')
+env = os.getenv('LABELML_ENV', 'prod')
 if env == 'prod':
     ENDPOINT = ProdConfig.ENDPOINT
 else:
