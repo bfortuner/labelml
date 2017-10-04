@@ -29,7 +29,7 @@ DEFAULT_LABELS = (
 #     'car', 'motorbike', 'pedestrian', 'biker'
 # )
 PROJECT_LABELS = (
-    'car', 'truck', 'pedestrian', 'trafficlight', 'biker'
+    'car', 'trafficlight', 'biker'
 )
 
 METRICS_FNAME = 'metrics.json'
@@ -66,6 +66,7 @@ class DevConfig(Config):
 
 #config = globals()[os.getenv('LABELML_ENV', 'ProdConfig')]
 env = os.getenv('LABELML_ENV', 'prod')
+print ("ENV " + env)
 if env == 'prod':
     ENDPOINT = ProdConfig.ENDPOINT
 else:

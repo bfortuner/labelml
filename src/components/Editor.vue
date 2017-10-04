@@ -54,6 +54,18 @@
       <v-spacer></v-spacer>
 
       <v-flex xs3 sm3>
+        <v-slider
+        label="Accelerate:"
+        v-on="adjustThreshold()"
+        v-model="sliderValue"
+        :step="5" 
+        snap 
+        thumb-label
+        dark>
+        </v-slider>
+      </v-flex>
+
+      <v-flex xs3 sm3>
         <v-select id='select-label'
           prepend-icon="label"
           v-bind:items="labels"
@@ -63,16 +75,7 @@
           :autocomplete="autocompleteLabels"
         ></v-select>
       </v-flex>
-      <v-flex xs2 sm2>
-        <v-slider 
-        v-on="adjustThreshold()"
-        v-model="sliderValue"
-        :step="5" 
-        snap 
-        thumb-label
-        dark>
-        </v-slider>
-      </v-flex>
+
     <v-btn icon @click="prevImage()" v-tooltip:bottom="{ html: 'Previous image' }">
       <v-icon large>navigate_before</v-icon>
     </v-btn>
