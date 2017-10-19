@@ -6,6 +6,7 @@ import Home from '@/components/Home'
 Vue.use(Router)
 
 export default new Router({
+  mode: 'history',
   routes: [
     {
       path: '/project/:project',
@@ -13,9 +14,14 @@ export default new Router({
       component: Editor,
       props: true
     },
-    { path: '/', 
+    {
+      path: '/home',
       name: 'home',
       component: Home,
+    },
+    {
+      path: '*',
+      redirect: '/home'
     }
   ]
 })
