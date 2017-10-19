@@ -28,6 +28,15 @@
             >
             Try Demo
             </v-btn>
+            <v-btn
+              class="blue lighten-2 mt-5"
+              dark
+              large
+              ripple
+              v-on:click="auth.login()"
+            >
+            Login
+            </v-btn>
           </v-layout>
         </v-parallax>
       </section>
@@ -166,6 +175,7 @@
 
 <script>
 
+import AuthService from '../Auth/AuthService.js'
 
 export default {
   name: 'home',
@@ -174,7 +184,8 @@ export default {
   data () {
       return {
           drawer: true,
-          title: 'label.ml'
+          title: 'label.ml',
+          auth: new AuthService()
       }
   }
 }
