@@ -2,15 +2,13 @@
 
 
   <v-app dark>
-    <v-toolbar class="dark">
-      <v-toolbar-title v-text="title"></v-toolbar-title>
-    </v-toolbar>
+    <nav-bar></nav-bar>
     <main>
       <section>
         <!-- <v-parallax src="http://pre11.deviantart.net/3e10/th/pre/f/2017/144/8/0/fight_by_nesskain-dbaa5v1.jpg" height="600"> -->
         <!-- <v-parallax src="https://s3-us-west-1.amazonaws.com/labelai-static/hero.jpeg" height="600"> -->
         <v-parallax src="https://s3.amazonaws.com/aws-website-labelai-gffh8/Screen+Shot+2017-10-01+at+6.01.48+PM.png" height="600">
-        
+
           <v-layout
             column
             align-center
@@ -33,60 +31,7 @@
       </section>
 
       <section>
-        <v-layout
-          column
-          wrap
-          class="my-5"
-          align-center
-        >
-          <v-flex xs12>
-            <v-container grid-list-xl>
-              <v-layout row wrap align-center>
-                <v-flex xs12 md4>
-                  <v-card class="elevation-0 transparent">
-                    <v-card-text class="text-xs-center">
-                      <v-icon x-large class="blue--text text--lighten-2">color_lens</v-icon>
-                    </v-card-text>
-                    <v-card-title primary-title class="layout justify-center">
-                      <div class="headline text-xs-center">Intuitive UI</div>
-                    </v-card-title>
-                    <v-card-text>
-                      Extensive keyboard shortcuts and smart editing tools designed for speed
-                      provide unparalleled speed and control of your workflow.
-                    </v-card-text>
-                  </v-card>
-                </v-flex>
-                <v-flex xs12 md4>
-                  <v-card class="elevation-0 transparent">
-                    <v-card-text class="text-xs-center">
-                      <v-icon x-large class="blue--text text--lighten-2">flash_on</v-icon>
-                    </v-card-text>
-                    <v-card-title primary-title class="layout justify-center">
-                      <div class="headline">AI Acceleration</div>
-                    </v-card-title>
-                    <v-card-text>
-                      Cras facilisis mi vitae nunc lobortis pharetra. Nulla volutpat tincidunt ornare. 
-                      Pellentesque habitant morbi tristique senectus.
-                    </v-card-text>
-                  </v-card>
-                </v-flex>
-                <v-flex xs12 md4>
-                  <v-card class="elevation-0 transparent">
-                    <v-card-text class="text-xs-center">
-                      <v-icon x-large class="blue--text text--lighten-2">build</v-icon>
-                    </v-card-text>
-                    <v-card-title primary-title class="layout justify-center">
-                      <div class="headline text-xs-center">Open Source</div>
-                    </v-card-title>
-                    <v-card-text>
-                      Download and run a basic version of our app for free locally on your machine!
-                    </v-card-text>
-                  </v-card>
-                </v-flex>
-              </v-layout>
-            </v-container>
-          </v-flex>
-        </v-layout>
+        <info-cards></info-cards>
       </section>
 
       <section>
@@ -115,7 +60,7 @@
                   <div class="headline">Company info</div>
                 </v-card-title>
                 <v-card-text>
-                  Cras facilisis mi vitae nunc lobortis pharetra. Nulla volutpat tincidunt ornare. 
+                  Cras facilisis mi vitae nunc lobortis pharetra. Nulla volutpat tincidunt ornare.
                   Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.
                 </v-card-text>
               </v-card>
@@ -161,20 +106,24 @@
         </v-layout>
       </v-footer>
     </main>
-  </v-app>  
+  </v-app>
 </template>
 
 <script>
 
+import NavBar from '@/components/NavBar'
+import InfoCards from '@/components/InfoCards'
 
 export default {
   name: 'home',
-  components: {},
+  components: {
+    NavBar,
+    InfoCards
+  },
   props: [],
   data () {
       return {
           drawer: true,
-          title: 'label.ml'
       }
   }
 }
