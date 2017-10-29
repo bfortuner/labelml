@@ -113,6 +113,7 @@
 
 import NavBar from '@/components/NavBar'
 import InfoCards from '@/components/InfoCards'
+import AuthService from '../Auth/AuthService.js'
 
 export default {
   name: 'home',
@@ -124,6 +125,7 @@ export default {
   data () {
       return {
           drawer: true,
+          auth: new AuthService()
       }
   }
 }

@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "apollo-client": "^1.9.2",
+    "auth0-js": "^8.10.1",
     "fabric": "^2.0.0-beta.6",
     "graphql-tag": "^2.4.2",
     "material-icons": "^0.1.0",
