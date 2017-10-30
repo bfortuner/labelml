@@ -3,14 +3,32 @@
   <head>
       <link href='https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons' rel="stylesheet">
   </head>
-    <router-view></router-view>
+    <router-view
+      :auth="auth"
+      :authenticated="authenticated">
+    </router-view>
   </div>
 </template>
 
 <script>
 
+import AuthService from './Auth/AuthService'
+
+const auth = new AuthService()
+
+const { authenticated, authNotifier } = auth
+
 export default {
-  name: 'app'
+  name: 'app',
+  data () {
+      authNotifier.on('authChange', authState => {
+      this.authenticated = authState.authenticated
+    })
+    return {
+      auth,
+      authenticated
+    }
+  }
 }
 </script>
 

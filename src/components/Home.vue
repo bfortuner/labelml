@@ -2,7 +2,16 @@
 
 
   <v-app dark>
-    <nav-bar></nav-bar>
+    <v-toolbar class="dark">
+      <v-toolbar-title v-text="title"></v-toolbar-title>
+      <v-spacer></v-spacer>
+      <v-btn flat v-if="!authenticated" v-on:click="login()">
+        Login
+      </v-btn>
+      <v-btn flat v-if="authenticated" v-on:click="logout()">
+        Login
+      </v-btn>
+    </v-toolbar>
     <main>
       <section>
         <!-- <v-parallax src="http://pre11.deviantart.net/3e10/th/pre/f/2017/144/8/0/fight_by_nesskain-dbaa5v1.jpg" height="600"> -->
@@ -111,22 +120,31 @@
 
 <script>
 
-import NavBar from '@/components/NavBar'
 import InfoCards from '@/components/InfoCards'
-import AuthService from '../Auth/AuthService.js'
+
 
 export default {
   name: 'home',
   components: {
-    NavBar,
     InfoCards
   },
-  props: [],
+  props: ['auth', 'authenticated'],
   data () {
-      return {
-          drawer: true,
-          auth: new AuthService()
-      }
+      this.auth.authNotifier.on('authChange', authState => {
+      this.authenticated = authState.authenticated
+    })
+    return {
+      drawer: true,
+      title: 'label.ml',
+    }
+  },
+  methods : {
+    login () {
+      this.auth.login()
+    },
+    logout () {
+      this.auth.logout()
+    }
   }
 }
 </script>

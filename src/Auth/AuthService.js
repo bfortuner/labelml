@@ -1,11 +1,19 @@
 // src/Auth/AuthService.js
 
 import auth0 from 'auth0-js'
+import EventEmitter from 'EventEmitter'
+import router from './../router'
 
 export default class AuthService {
 
+  authenticated = this.isAuthenticated()
+  authNotifier = new EventEmitter()
+
   constructor () {
     this.login = this.login.bind(this)
+    this.setSession = this.setSession.bind(this)
+    this.logout = this.logout.bind(this)
+    this.isAuthenticated = this.isAuthenticated.bind(this)
   }
 
   auth0 = new auth0.WebAuth({
@@ -21,11 +29,11 @@ export default class AuthService {
     this.auth0.authorize()
   }
 
-  handleAuthentication () {
+ handleAuthentication () {
     this.auth0.parseHash((err, authResult) => {
       if (authResult && authResult.accessToken && authResult.idToken) {
         this.setSession(authResult)
-        router.replace('home')
+        router.replace('project/example_project')
       } else if (err) {
         router.replace('home')
         console.log(err)
@@ -52,7 +60,7 @@ export default class AuthService {
     this.userProfile = null
     this.authNotifier.emit('authChange', false)
     // navigate to the home route
-    router.replace('project/example_data')
+    router.replace('home')
   }
 
   isAuthenticated () {
@@ -62,4 +70,3 @@ export default class AuthService {
     return new Date().getTime() < expiresAt
   }
 }
-
