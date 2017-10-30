@@ -9,7 +9,7 @@
         Login
       </v-btn>
       <v-btn flat v-if="authenticated" v-on:click="logout()">
-        Login
+        Logout
       </v-btn>
     </v-toolbar>
     <main>
@@ -130,9 +130,6 @@ export default {
   },
   props: ['auth', 'authenticated'],
   data () {
-      this.auth.authNotifier.on('authChange', authState => {
-      this.authenticated = authState.authenticated
-    })
     return {
       drawer: true,
       title: 'label.ml',
