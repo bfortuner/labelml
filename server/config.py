@@ -57,7 +57,7 @@ class Config(object):
     AWS_REGION='us-west-1'
 
 class ProdConfig(Config):
-    ENDPOINT = 'http://labelml.wfcpkpjahu.us-west-1.elasticbeanstalk.com'
+    ENDPOINT = 'http://labelml.us-west-1.elasticbeanstalk.com'
     DEBUG = False
 
 class DevConfig(Config):
@@ -72,6 +72,5 @@ if env == 'prod':
 else:
     ENDPOINT = DevConfig.ENDPOINT
 
-# ENDPOINT = 'http://labelml.wfcpkpjahu.us-west-1.elasticbeanstalk.com'
 IMG_ENDPOINT = ENDPOINT + '/img'
 print("IMG", IMG_ENDPOINT)
