@@ -36,3 +36,12 @@ For detailed explanation on how things work, checkout the [guide](http://vuejs-t
 eb init
 eb deploy
 ```
+
+## Add static files to S3 bucket
+
+```
+npm run build
+```
+
+Copy files in ```dist/```
+
