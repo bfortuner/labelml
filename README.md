@@ -33,7 +33,8 @@ For detailed explanation on how things work, checkout the [guide](http://vuejs-t
 ## Deploy to Elastic Beanstalk
 
 ```
-eb init
+cd server/
+eb init (if .elasticbeanstalk/ isn't there)
 eb deploy
 ```
 
